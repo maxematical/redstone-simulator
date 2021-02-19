@@ -1,0 +1,22 @@
+{
+  "name": "redstone-architect",
+  "version": "0.1.0",
+  "description": "Online application to design and save redstone circuits",
+  "main": "src/index.ts",
+  "author": "maxematical",
+  "license": "All rights reserved",
+  "private": true,
+  "dependencies": {
+    "gl-matrix": "^3.3.0",
+    "parcel": "^1.12.4"
+  },
+  "devDependencies": {
+    "glslify-bundle": "^5.1.1",
+    "glslify-deps": "^1.3.2",
+    "typescript": "^4.1.5"
+  },
+  "scripts": {
+    "dev": "parcel src/index.html",
+    "build": "parcel build src/index.html"
+  }
+}
