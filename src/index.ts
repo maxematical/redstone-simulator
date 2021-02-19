@@ -1,8 +1,10 @@
 import vertSrc from './test_vert.glsl';
 import fragSrc from './test_frag.glsl';
+import { Grid } from './grid';
 
 var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
+var grid: Grid = Grid.new([1, 1, 1]);
 
 const maximizeCanvas = () => {
     const body = document.querySelector('body');
