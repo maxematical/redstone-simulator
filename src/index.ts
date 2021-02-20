@@ -5,6 +5,7 @@ import { Grid } from './grid';
 import { Model, models } from './models';
 import { vec3, mat4 } from 'gl-matrix';
 import { Blocks } from './blocks';
+import input from './input';
 
 var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
@@ -46,6 +47,8 @@ const initProgram = (vert: WebGLShader, frag: WebGLShader): WebGLProgram => {
 window.onload = () => {
     document.getElementById('status-message').innerHTML = '';
 
+    input.init();
+
     canvas = document.getElementById('canvas') as HTMLCanvasElement;
     maximizeCanvas();
     window.addEventListener('resize', maximizeCanvas);
@@ -58,7 +61,6 @@ window.onload = () => {
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
     gl.cullFace(gl.BACK);
-    //gl.disable(gl.CULL_FACE);
 
     const vertShader = initShader('test_vert', vertSrc, gl.VERTEX_SHADER);
     const fragShader = initShader('test_frag', fragSrc, gl.FRAGMENT_SHADER);
@@ -83,24 +85,6 @@ window.onload = () => {
     const gridRenderer = GridRenderer.new();
     GridRenderer.update(gridRenderer, grid);
 
-    // const model = Model.use(models.fullBlock, { nPerVertex: 1, data: [0, 1, 2, 3, 4, 5, 6, 7] });
-    // //const model = Model.use(models.triangle);
-    // const vertexData = model.vertexData;
-    // const indices = model.indices;
-
-    // const vao = gl.createVertexArray();
-    // gl.bindVertexArray(vao);
-    // const vbo = gl.createBuffer();
-    // gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    // gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
-    // const ebo = gl.createBuffer();
-    // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
-    // gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    // gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 16, 0);
-    // gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 16, 12);
-    // gl.enableVertexAttribArray(0);
-    // gl.enableVertexAttribArray(1);
-
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
     const renderInfo: GLRenderInfo = { mvp: mvpMat };
@@ -121,10 +105,13 @@ window.onload = () => {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         GridRenderer.render(gridRenderer, renderInfo);
-        // gl.useProgram(program);
-        // gl.uniformMatrix4fv(loc_mvp, false, Float32Array.from(mvpMat));
-        // gl.bindVertexArray(vao);
-        // gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_INT, 0);
+
+        input.update();
+
+        if (input.keyDown['KeyW'])
+            console.log('w');
+        if (input.keyPressed['KeyS'])
+        console.log('s');
     };
     loop(performance.now());
 };
