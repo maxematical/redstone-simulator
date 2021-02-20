@@ -4,7 +4,7 @@ import fragSrc from './test_frag.glsl';
 import { Grid } from './grid';
 import { Model, models } from './models';
 import { vec3, mat4 } from 'gl-matrix';
-import { Blocks } from './blocks';
+import { Block, Blocks } from './blocks';
 import input from './input';
 
 var canvas: HTMLCanvasElement = null;
@@ -85,6 +85,10 @@ window.onload = () => {
     const gridRenderer = GridRenderer.new();
     GridRenderer.update(gridRenderer, grid);
 
+    const highlightBlock = vec3.create(); // whole coordinates
+    const cameraTranslation = vec3.create();
+    const CAMERA_SHIFT: vec3 = [ 0.5, 0.5, 2.5 ];
+
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
     const renderInfo: GLRenderInfo = { mvp: mvpMat };
@@ -95,23 +99,40 @@ window.onload = () => {
         lastTimestamp = timestamp;
         totalTime += delta;
 
-        modelRotation += 180.0 * delta;
-        mat4.fromRotation(modelMat, modelRotation * 3.14159 / 180.0, [0,1,0]);
-        mat4.rotateX(modelMat, modelMat, 0.1 * sin(totalTime * 2.5));
-        mat4.translate(modelMat, modelMat, [ -0.5, -0.5, -0.5 ]);
+        input.update();
+
+        if (input.keyDown['KeyA'])
+            highlightBlock[0]--;
+        if (input.keyDown['KeyD'])
+            highlightBlock[0]++;
+        if (input.keyDown['KeyW'])
+            highlightBlock[1]++;
+        if (input.keyDown['KeyS'])
+            highlightBlock[1]--;
+
+        if (input.keyDown['Space']) {
+            if (Grid.inBounds(grid, highlightBlock)) {
+                const out: [Block, number] = [null, 0];
+                Grid.getNullable(grid, highlightBlock, out);
+                const nextBlock: Block = out[0] ? null : Blocks.stone;
+                Grid.set(grid, highlightBlock, nextBlock);
+                GridRenderer.update(gridRenderer, grid);
+            }
+        }
+
+        // modelRotation += 180.0 * delta;
+        // mat4.fromRotation(modelMat, modelRotation * 3.14159 / 180.0, [0,1,0]);
+        // mat4.rotateX(modelMat, modelMat, 0.1 * sin(totalTime * 2.5));
+        // mat4.translate(modelMat, modelMat, [ -0.5, -0.5, -0.5 ]);
+
+        vec3.add(cameraTranslation, highlightBlock, CAMERA_SHIFT);
+        vec3.negate(cameraTranslation, cameraTranslation);
+        mat4.fromTranslation(cameraMat, cameraTranslation);
         mat4.identity(mvpMat);
         mat4.mul(mvpMat, cameraMat, modelMat);
         mat4.mul(mvpMat, projMat, mvpMat);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        GridRenderer.render(gridRenderer, renderInfo);
-
-        input.update();
-
-        if (input.keyDown['KeyW'])
-            console.log('w');
-        if (input.keyPressed['KeyS'])
-        console.log('s');
-    };
+        GridRenderer.render(gridRenderer, renderInfo);    };
     loop(performance.now());
 };

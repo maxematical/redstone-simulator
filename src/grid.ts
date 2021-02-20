@@ -84,10 +84,10 @@ export const Grid = {
         out[1] = grid.data[index + 1];
     },
 
-    set: (grid: Grid, xyz: vec3, block: Block, state?: number) => {
+    set: (grid: Grid, xyz: vec3, block: Block | null, state?: number) => {
         Grid._boundsCheck(grid, xyz);
         const index = Grid.index(grid, xyz);
-        grid.data[index] = block.id;
+        grid.data[index] = block ? block.id : 0;
         grid.data[index + 1] = state || 0;
     },
 
