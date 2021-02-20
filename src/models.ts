@@ -107,7 +107,7 @@ const fullBlock: Model = {
         // +Z side
         7, 3, 6, 6, 3, 2,
         // Bottom
-        0, 3, 1, 1, 3, 2
+        0, 1, 3, 3, 1, 2
     ]
 };
 export const models = { triangle, fullBlock };
