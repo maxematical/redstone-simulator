@@ -1,6 +1,7 @@
 import vertSrc from './test_vert.glsl';
 import fragSrc from './test_frag.glsl';
 import { Grid } from './grid';
+import { Model, models } from './models';
 
 var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
@@ -55,17 +56,33 @@ window.onload = () => {
     const fragShader = initShader('test_frag', fragSrc, gl.FRAGMENT_SHADER);
     const program = initProgram(vertShader, fragShader);
     
+    const model = Model.use(models.fullBlock);
+    // const vertices = model.vertices;
+    // const indices = model.indices;
     const vertices = Float32Array.from([
-        -0.5, -0.5, 0.0,
+        // -0.5, -0.5, 0.0,
+        // 0.5, -0.5, 0.0,
+        // 0.0, 0.5, 0.0
+        0.5,  0.5, 0.0,
         0.5, -0.5, 0.0,
-        0.0, 0.5, 0.0
+       -0.5, -0.5, 0.0,
+       -0.5,  0.5, 0.0 
     ]);
+    const indices = Uint32Array.from([
+        0, 1, 3, 1, 2, 3
+    ]);
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
     const vbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    const ebo = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
     gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
     gl.enableVertexAttribArray(0);
 
     gl.useProgram(program);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindVertexArray(vao);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
 };
