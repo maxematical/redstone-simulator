@@ -1,10 +1,11 @@
+import { Block, Blocks } from './blocks';
 import { vec3 } from 'gl-matrix';
 
 export interface Grid {
     size: vec3;
     min: vec3,
     max: vec3, // inclusive
-    data: boolean[];
+    data: number[];
 };
 
 const { min, max } = Math;
@@ -38,6 +39,7 @@ export const Grid = {
                         const oldI = Grid.index(grid, xyz);
                         const newI = Grid._index(newMin, newSize, xyz);
                         newData[newI] = grid.data[oldI];
+                        newData[newI + 1] = grid.data[oldI + 1];
                     }
                 }
             }
@@ -61,17 +63,21 @@ export const Grid = {
         const xx = xyz[0] - min[0];
         const yy = xyz[1] - min[1];
         const zz = xyz[2] - min[2];
-        return xx + (yy * size[0]) + (zz * size[1] * size[0]);
+        return (xx + (yy * size[0]) + (zz * size[1] * size[0])) * 2;
     },
 
-    get: (grid: Grid, xyz: vec3): boolean => {
+    get: (grid: Grid, xyz: vec3, out: [Block, number]) => {
         Grid._boundsCheck(grid, xyz);
-        return grid.data[Grid.index(grid, xyz)]
+        const index = Grid.index(grid, xyz);
+        out[0] = Blocks.byId(grid.data[index]);
+        out[1] = grid.data[index + 1];
     },
 
-    set: (grid: Grid, xyz: vec3, value: boolean) => {
+    set: (grid: Grid, xyz: vec3, block: Block, state: number) => {
         Grid._boundsCheck(grid, xyz);
-        grid.data[Grid.index(grid, xyz)] = value;
+        const index = Grid.index(grid, xyz);
+        grid.data[index] = block.id;
+        grid.data[index + 1] = state;
     },
 
     _boundsCheck: (grid: Grid, xyz: vec3) => {
@@ -82,5 +88,5 @@ export const Grid = {
         }
     },
 
-    _createData: (size: vec3): boolean[] => new Array(size[0] * size[1] * size[2])
+    _createData: (size: vec3): number[] => new Array(size[0] * size[1] * size[2] * 2)
 };
