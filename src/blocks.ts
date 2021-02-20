@@ -1,4 +1,4 @@
-import { vec3 } from 'gl-matrix';
+import { vec3, mat4 } from 'gl-matrix';
 import { Grid } from './grid';
 import { GLModel, Model, models } from './models';
 import { BlockRenderer, BlockGLRenderer, ModelCombiner, GLRenderInfo } from './render';
@@ -34,7 +34,7 @@ class SolidBlockGLRenderer implements BlockGLRenderer {
         this.ebo = gl.createBuffer();
 
         const vert = initShader('test_vert', vertSrc, gl.VERTEX_SHADER);
-        const frag = initShader('test_frag', fragSrc, gl.VERTEX_SHADER);
+        const frag = initShader('test_frag', fragSrc, gl.FRAGMENT_SHADER);
         this.program = initProgram(vert, frag);
         this.loc_mvp = gl.getUniformLocation(this.program, 'mvp');
 
@@ -53,6 +53,7 @@ class SolidBlockGLRenderer implements BlockGLRenderer {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, model.indices, gl.STATIC_DRAW);
         this.nElements = model.indices.length;
+        console.log('Uploading model', model);
     }
 
     renderCombinedModel(info: GLRenderInfo) {
@@ -67,8 +68,12 @@ const solidBlockRenderer: BlockRenderer = {
     id: ++renderIdCounter,
     nModels: 1,
     render: (grid, coords, block, state, out) => {
-        const model = Model.use(models.fullBlock, { nPerVertex: 1, data: [ 0, 1, 2, 3, 4, 5, 6, 7 ] });
+        const mat = mat4.create();
+        mat4.translate(mat, mat, coords);
+        const model = Model.use(models.fullBlock, { nPerVertex: 1, data: [ 0, 1, 2, 3, 4, 5, 6, 7 ] },
+            mat);
         ModelCombiner.addModel(out, model);
+        console.log('Added model', model);
     },
     createBlockGLRenderer: () => new SolidBlockGLRenderer()
 };
@@ -85,11 +90,11 @@ export const Blocks = {
     stone,
 
     blockRegistry,
-    byId: (id: number) => {
+    byId: (id: number, allowNull?: boolean): Block => {
         const block = Blocks.blockRegistry[id];
-        if (!block) {
+        if (!block && !allowNull) {
             throw new Error(`Tried to find a block with an invalid ID: ${id}`);
         }
-        return block;
+        return block || null;
     }
 };

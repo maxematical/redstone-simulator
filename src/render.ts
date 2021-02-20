@@ -17,20 +17,32 @@ export const ModelCombiner = {
     /** Adds a model */
     addModel: (self: ModelCombiner, model: GLModel): void => {
         self._modelBuffer.push(model);
+        self._totalVertices += model.vertexData.length;
+        self._totalIndices += model.indices.length;
     },
 
     /** Combines into single model */
     combine: (self: ModelCombiner): GLModel => {
         const vertexData = new Array(self._totalVertices);
         const indices = new Array(self._totalIndices);
+
+        let vertexDataIndex = 0;
+        let indicesIndex = 0;
+        let modelStartVertex = 0;
+
         for (let i = 0; i < self._modelBuffer.length; i++) {
             const model = self._modelBuffer[i];
-            vertexData.push(model.vertexData);
-            indices.push(model.indices);
+            for (let j = 0; j < model.vertexData.length; j++)
+                vertexData[vertexDataIndex++] = model.vertexData[j];
+            for (let j = 0; j < model.indices.length; j++)
+                indices[indicesIndex++] = model.indices[j] + modelStartVertex;
+            modelStartVertex += model.vertexData.length / model.dataPerVertex;
         }
+        console.log('in combine()', vertexData, indices);
         return {
             vertexData: Float32Array.from(vertexData),
-            indices: Uint32Array.from(indices)
+            indices: Uint32Array.from(indices),
+            dataPerVertex: null
         };
     },
 
@@ -97,8 +109,9 @@ export const GridRenderer = {
             for (let y = grid.min[1]; y <= grid.max[1]; y++) {
                 for (let z = grid.min[2]; z <= grid.max[2]; z++) {
                     vec3.set(xyz, x, y, z);
-                    Grid.get(grid, xyz, out);
+                    Grid.getNullable(grid, xyz, out);
                     const [block, state] = out;
+                    if (!block) continue;
                     const modelCombiner = GridRenderer._getOrCreateCombiner(self, block.renderer);
                     block.renderer.render(grid, xyz, block, state, modelCombiner);
                 }
@@ -110,6 +123,7 @@ export const GridRenderer = {
             const combiner = self._combiners[i];
             if (combiner) {
                 const model = ModelCombiner.combine(combiner);
+                console.log('Combined model', model, combiner);
                 
                 let subrenderer: BlockGLRenderer = self._subrenderers[i];
                 if (!subrenderer) {

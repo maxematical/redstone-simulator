@@ -50,13 +50,15 @@ window.onload = () => {
     maximizeCanvas();
     window.addEventListener('resize', maximizeCanvas);
 
-    gl = canvas.getContext('webgl2');
+    gl = window.gl = canvas.getContext('webgl2');
     if (gl === null) {
         alert('Unable to initialize opengl');
     }
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
     gl.cullFace(gl.BACK);
+    //gl.disable(gl.CULL_FACE);
 
     const vertShader = initShader('test_vert', vertSrc, gl.VERTEX_SHADER);
     const fragShader = initShader('test_frag', fragSrc, gl.FRAGMENT_SHADER);
@@ -74,7 +76,9 @@ window.onload = () => {
     const mvpMat = new Float32Array(16);
     
     const grid = Grid.new([3, 3, 3]);
-    Grid.set(grid, [0, 0, 0], Blocks.stone, 0);
+    Grid.set(grid, [0, 0, 0], Blocks.stone);
+    Grid.set(grid, [1, 0, 0], Blocks.stone);
+    Grid.set(grid, [0, 1, 0], Blocks.stone);
     
     const gridRenderer = GridRenderer.new();
     GridRenderer.update(gridRenderer, grid);
@@ -109,13 +113,13 @@ window.onload = () => {
 
         modelRotation += 180.0 * delta;
         mat4.fromRotation(modelMat, modelRotation * 3.14159 / 180.0, [0,1,0]);
-        mat4.rotateX(modelMat, modelMat, 0.8 * sin(totalTime * 2.5));
+        mat4.rotateX(modelMat, modelMat, 0.1 * sin(totalTime * 2.5));
         mat4.translate(modelMat, modelMat, [ -0.5, -0.5, -0.5 ]);
         mat4.identity(mvpMat);
         mat4.mul(mvpMat, cameraMat, modelMat);
         mat4.mul(mvpMat, projMat, mvpMat);
 
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         GridRenderer.render(gridRenderer, renderInfo);
         // gl.useProgram(program);
         // gl.uniformMatrix4fv(loc_mvp, false, Float32Array.from(mvpMat));

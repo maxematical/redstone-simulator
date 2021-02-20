@@ -8,6 +8,7 @@ export interface Model {
 export interface GLModel {
     vertexData: Float32Array;
     indices: Uint32Array;
+    dataPerVertex: number;
 }
 
 export const Model = {
@@ -57,6 +58,7 @@ export const Model = {
         return {
             vertexData: Float32Array.from(outVerts),
             indices: Uint32Array.from(model.indices),
+            dataPerVertex: step
         };
     }
 };

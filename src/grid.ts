@@ -73,10 +73,14 @@ export const Grid = {
         return (xx + (yy * size[0]) + (zz * size[1] * size[0])) * 2;
     },
 
-    get: (grid: Grid, xyz: vec3, out: [Block, number]) => {
+    get: (grid: Grid, xyz: vec3, out: [Block, number]) => Grid._get(grid, xyz, out, false),
+
+    getNullable: (grid: Grid, xyz: vec3, out: [Block, number]) => Grid._get(grid, xyz, out, true),
+
+    _get: (grid: Grid, xyz: vec3, out: [Block, number], allowNull: boolean) => {
         Grid._boundsCheck(grid, xyz);
         const index = Grid.index(grid, xyz);
-        out[0] = Blocks.byId(grid.data[index]);
+        out[0] = Blocks.byId(grid.data[index], allowNull);
         out[1] = grid.data[index + 1];
     },
 
@@ -102,5 +106,11 @@ export const Grid = {
         }
     },
 
-    _createData: (size: vec3): number[] => new Array(size[0] * size[1] * size[2] * 2)
+    _createData: (size: vec3): number[] => {
+        const data = new Array(size[0] * size[1] * size[2] * 2)
+        for (let i = 0; i < data.length; i++) {
+            data[i] = 0;
+        }
+        return data;
+    }
 };
