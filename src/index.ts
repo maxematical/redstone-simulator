@@ -11,7 +11,9 @@ var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
 var grid: Grid = Grid.new([1, 1, 1]);
 
-const { sin } = Math;
+const { sin, min } = Math;
+
+const lerp = (a: number, b: number, t: number) => a * (1.0 - t) + b * t;
 
 const maximizeCanvas = () => {
     const body = document.querySelector('body');
@@ -61,6 +63,8 @@ window.onload = () => {
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
     gl.cullFace(gl.BACK);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     const vertShader = initShader('test_vert', vertSrc, gl.VERTEX_SHADER);
     const fragShader = initShader('test_frag', fragSrc, gl.FRAGMENT_SHADER);
@@ -72,9 +76,13 @@ window.onload = () => {
     vec3.normalize(rotationAxis, rotationAxis);
     const modelMat = mat4.create();
     const projMat = mat4.create();
-    mat4.perspective(projMat, 1.2217, canvas.width/canvas.height, 0.1, 100);
+    mat4.perspective(projMat, 1.1, canvas.width/canvas.height, 0.1, 100);
+    // const orthoZoom = 3;
+    // const aspect = canvas.height / canvas.width;
+    // mat4.ortho(projMat, -orthoZoom, orthoZoom, -orthoZoom * aspect, orthoZoom * aspect, 0.1, 100);
+    // mat4.rotateX(projMat, projMat, 0.1);
+    // mat4.rotateY(projMat, projMat, 0.1);
     const cameraMat = mat4.create();
-    mat4.translate(cameraMat, cameraMat, [0, 0, -3]);
     const mvpMat = new Float32Array(16);
     
     const grid = Grid.new([3, 3, 3]);
@@ -87,7 +95,23 @@ window.onload = () => {
 
     const highlightBlock = vec3.create(); // whole coordinates
     const cameraTranslation = vec3.create();
-    const CAMERA_SHIFT: vec3 = [ 0.5, 0.5, 2.5 ];
+    const CAMERA_SHIFT: vec3 = [ 0.5, 0.5, 3.5 ];
+    
+    const ANIMATION_LENGTH = 75;
+    const animationStartPos: vec3 = vec3.create();
+    let camRotationXStart = 0.0;
+    let camRotationYStart = 0.0;
+    let animationStartTime: DOMHighResTimeStamp = 0;
+    const highlightBlockAnimated = vec3.create();
+
+    const CAM_ROTATE_X = 0.05;
+    const CAM_ROTATE_Y = -0.05;
+    let camRotationX = CAM_ROTATE_X;
+    let camRotationY = CAM_ROTATE_Y;
+    let camRotationXAnimated = camRotationX;
+    let camRotationYAnimated = camRotationY;
+
+    const oldHighlightBlock = vec3.create();
 
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
@@ -101,14 +125,41 @@ window.onload = () => {
 
         input.update();
 
-        if (input.keyDown['KeyA'])
+        vec3.copy(oldHighlightBlock, highlightBlock);
+        if (input.keyDown['KeyA']) {
             highlightBlock[0]--;
-        if (input.keyDown['KeyD'])
+            camRotationY = -CAM_ROTATE_Y;
+        }
+        if (input.keyDown['KeyD']) {
             highlightBlock[0]++;
-        if (input.keyDown['KeyW'])
-            highlightBlock[1]++;
-        if (input.keyDown['KeyS'])
+            camRotationY = CAM_ROTATE_Y;
+        }
+        if (input.keyDown['KeyS']) {
             highlightBlock[1]--;
+            camRotationX = -CAM_ROTATE_X;
+        }
+        if (input.keyDown['KeyW']) {
+            highlightBlock[1]++;
+            camRotationX = CAM_ROTATE_X;
+        }
+        if (input.keyDown['KeyQ'])
+            highlightBlock[2]++;
+        if (input.keyDown['KeyE'])
+            highlightBlock[2]--;
+
+        if (!vec3.equals(highlightBlock, oldHighlightBlock)) {
+            vec3.copy(animationStartPos, highlightBlockAnimated);
+            camRotationXStart = camRotationXAnimated;
+            camRotationYStart = camRotationYAnimated;
+            animationStartTime = timestamp;
+        }
+
+        if (animationStartPos) {
+            const t = min((timestamp - animationStartTime) / ANIMATION_LENGTH, 1);
+            vec3.lerp(highlightBlockAnimated, animationStartPos, highlightBlock, t);
+            camRotationXAnimated = lerp(camRotationXStart, camRotationX, t);
+            camRotationYAnimated = lerp(camRotationYStart, camRotationY, t);
+        }
 
         if (input.keyDown['Space']) {
             if (Grid.inBounds(grid, highlightBlock)) {
@@ -125,14 +176,19 @@ window.onload = () => {
         // mat4.rotateX(modelMat, modelMat, 0.1 * sin(totalTime * 2.5));
         // mat4.translate(modelMat, modelMat, [ -0.5, -0.5, -0.5 ]);
 
-        vec3.add(cameraTranslation, highlightBlock, CAMERA_SHIFT);
+        vec3.add(cameraTranslation, highlightBlockAnimated, CAMERA_SHIFT);
         vec3.negate(cameraTranslation, cameraTranslation);
+        // mat4.fromYRotation(cameraMat, camRotationY);
+        // mat4.translate(cameraMat, cameraMat, cameraTranslation);
         mat4.fromTranslation(cameraMat, cameraTranslation);
+        mat4.rotateY(cameraMat, cameraMat, camRotationYAnimated);
+        mat4.rotateX(cameraMat, cameraMat, camRotationXAnimated);
         mat4.identity(mvpMat);
         mat4.mul(mvpMat, cameraMat, modelMat);
         mat4.mul(mvpMat, projMat, mvpMat);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        GridRenderer.render(gridRenderer, renderInfo);    };
+        GridRenderer.render(gridRenderer, renderInfo);
+    };
     loop(performance.now());
 };
