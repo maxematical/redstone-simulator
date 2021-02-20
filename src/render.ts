@@ -54,16 +54,15 @@ export interface BlockRenderer {
     /** Called to render for a single block in a grid. Add models to the ModelCombiner */
     render(grid: Grid, coords: vec3, block: Block, state: number, out: ModelCombiner);
 
-    /** Called to create a BlockTypeRenderer that corresponds to this BlockRenderer */
-    createBlockTypeRenderer(): BlockTypeRenderer;
+    /** Called to create a BlockGLRenderer that corresponds to this BlockRenderer */
+    createBlockGLRenderer(): BlockGLRenderer;
 }
 
 /**
  * Manages rendering for a single block type. There will be one of these per BlockRenderer,
  * per GridRenderer. Will handle VBOs/EBOs and directly interface with OpenGL.
  */
-export interface BlockTypeRenderer {
-    /** TODO call this sometime so we can init OpenGL stuff */
+export interface BlockGLRenderer {
     init();
 
     /**
@@ -73,15 +72,17 @@ export interface BlockTypeRenderer {
     uploadCombinedModel(model: GLModel);
 
     /** Called to render the combined model, I.e. the final step in rendering this particular type of block. */
-    renderCombinedModel(); // TODO may need to add more params later
+    renderCombinedModel(info: GLRenderInfo);
 }
 
 export interface GridRenderer {
     _combiners: ModelCombiner[]; // 1 combiner per BlockRenderer
-    _subrenderers: BlockTypeRenderer[]; // 1 BlockTypeRenderer per BlockRenderer
+    _subrenderers: BlockGLRenderer[]; // 1 BlockGLRenderer per BlockRenderer
 }
 
-const GridRenderer = {
+export const GridRenderer = {
+    new: (): GridRenderer => ({ _combiners: [], _subrenderers: [] }),
+
     update: (self: GridRenderer, grid: Grid): void => {
         // 0) Setup
         for (let i = 0; i < self._combiners.length; i++) {
@@ -110,9 +111,10 @@ const GridRenderer = {
             if (combiner) {
                 const model = ModelCombiner.combine(combiner);
                 
-                let subrenderer: BlockTypeRenderer = self._subrenderers[i];
+                let subrenderer: BlockGLRenderer = self._subrenderers[i];
                 if (!subrenderer) {
-                    subrenderer = Blocks.byId(i).renderer.createBlockTypeRenderer();
+                    subrenderer = Blocks.byId(i).renderer.createBlockGLRenderer();
+                    subrenderer.init();
                     self._subrenderers[i] = subrenderer;
                 }
                 subrenderer.uploadCombinedModel(model);
@@ -120,12 +122,12 @@ const GridRenderer = {
         }
     },
 
-    render: (self: GridRenderer) => {
+    render: (self: GridRenderer, info: GLRenderInfo) => {
         // Go through each subrenderer and draw those blocks
         for (let i = 0; i < self._subrenderers.length; i++) {
             const subrenderer = self._subrenderers[i];
             if (subrenderer) {
-                subrenderer.renderCombinedModel();
+                subrenderer.renderCombinedModel(info);
             }
         }
     },
@@ -141,3 +143,7 @@ const GridRenderer = {
         }
     }
 };
+
+export interface GLRenderInfo {
+    mvp: Float32List;
+}

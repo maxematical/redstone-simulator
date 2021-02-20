@@ -1,8 +1,10 @@
+import { GLRenderInfo, GridRenderer } from './render';
 import vertSrc from './test_vert.glsl';
 import fragSrc from './test_frag.glsl';
 import { Grid } from './grid';
 import { Model, models } from './models';
 import { vec3, mat4 } from 'gl-matrix';
+import { Blocks } from './blocks';
 
 var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
@@ -69,28 +71,35 @@ window.onload = () => {
     mat4.perspective(projMat, 1.2217, canvas.width/canvas.height, 0.1, 100);
     const cameraMat = mat4.create();
     mat4.translate(cameraMat, cameraMat, [0, 0, -3]);
-    const mvpMat = mat4.create();
+    const mvpMat = new Float32Array(16);
     
-    const model = Model.use(models.fullBlock, { nPerVertex: 1, data: [0, 1, 2, 3, 4, 5, 6, 7] });
-    //const model = Model.use(models.triangle);
-    const vertexData = model.vertexData;
-    const indices = model.indices;
+    const grid = Grid.new([3, 3, 3]);
+    Grid.set(grid, [0, 0, 0], Blocks.stone, 0);
+    
+    const gridRenderer = GridRenderer.new();
+    GridRenderer.update(gridRenderer, grid);
 
-    const vao = gl.createVertexArray();
-    gl.bindVertexArray(vao);
-    const vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
-    const ebo = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 16, 0);
-    gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 16, 12);
-    gl.enableVertexAttribArray(0);
-    gl.enableVertexAttribArray(1);
+    // const model = Model.use(models.fullBlock, { nPerVertex: 1, data: [0, 1, 2, 3, 4, 5, 6, 7] });
+    // //const model = Model.use(models.triangle);
+    // const vertexData = model.vertexData;
+    // const indices = model.indices;
+
+    // const vao = gl.createVertexArray();
+    // gl.bindVertexArray(vao);
+    // const vbo = gl.createBuffer();
+    // gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    // gl.bufferData(gl.ARRAY_BUFFER, vertexData, gl.STATIC_DRAW);
+    // const ebo = gl.createBuffer();
+    // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    // gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    // gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 16, 0);
+    // gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 16, 12);
+    // gl.enableVertexAttribArray(0);
+    // gl.enableVertexAttribArray(1);
 
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
+    const renderInfo: GLRenderInfo = { mvp: mvpMat };
     const loop = (timestamp: DOMHighResTimeStamp) => {
         requestAnimationFrame(loop);
 
@@ -107,10 +116,11 @@ window.onload = () => {
         mat4.mul(mvpMat, projMat, mvpMat);
 
         gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.useProgram(program);
-        gl.uniformMatrix4fv(loc_mvp, false, Float32Array.from(mvpMat));
-        gl.bindVertexArray(vao);
-        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_INT, 0);
+        GridRenderer.render(gridRenderer, renderInfo);
+        // gl.useProgram(program);
+        // gl.uniformMatrix4fv(loc_mvp, false, Float32Array.from(mvpMat));
+        // gl.bindVertexArray(vao);
+        // gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_INT, 0);
     };
     loop(performance.now());
 };

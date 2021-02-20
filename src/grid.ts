@@ -11,12 +11,19 @@ export interface Grid {
 const { min, max } = Math;
 
 export const Grid = {
-    new: (size: vec3): Grid => ({
-        size,
-        min: vec3.fromValues(0, 0, 0),
-        max: vec3.fromValues(1, 1, 1),
-        data: Grid._createData(size),
-    }),
+    new: (size: vec3, min?: vec3): Grid => {
+        Grid._sizeCheck(size);
+        min = min || vec3.fromValues(0, 0, 0);
+        const max = vec3.fromValues(-1, -1, -1);
+        vec3.add(max, max, size);
+        vec3.add(max, max, min); // max = min + size - [1,1,1]
+        return {
+            size,
+            min,
+            max,
+            data: Grid._createData(size)
+        };
+    },
 
     /** Resize the grid. The current origin will be kept */
     // This HAs nOt been Tested Yet!!!!!!!
@@ -73,11 +80,11 @@ export const Grid = {
         out[1] = grid.data[index + 1];
     },
 
-    set: (grid: Grid, xyz: vec3, block: Block, state: number) => {
+    set: (grid: Grid, xyz: vec3, block: Block, state?: number) => {
         Grid._boundsCheck(grid, xyz);
         const index = Grid.index(grid, xyz);
         grid.data[index] = block.id;
-        grid.data[index + 1] = state;
+        grid.data[index + 1] = state || 0;
     },
 
     _boundsCheck: (grid: Grid, xyz: vec3) => {
@@ -85,6 +92,13 @@ export const Grid = {
             console.error('Attempted to access out-of-bounds grid coordinate, details:',
                 'Grid:', grid, 'Coordinates:', xyz);
             throw new Error('Attempted to access out-of-bounds grid coordinate');
+        }
+    },
+
+    _sizeCheck: (size: vec3) => {
+        if (size[0] <= 0 || size[1] <= 0 || size[2] <= 0) {
+            console.error('Grid size is too small:', size);
+            throw new Error('Grid sizde is too small');
         }
     },
 
