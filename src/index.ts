@@ -1,4 +1,4 @@
-import { GLRenderInfo, GridRenderer } from './render';
+import { GLRenderInfo, LayeredGridRenderer } from './render';
 import vertSrc from './test_vert.glsl';
 import fragSrc from './test_frag.glsl';
 import { Grid } from './grid';
@@ -76,7 +76,7 @@ window.onload = () => {
     vec3.normalize(rotationAxis, rotationAxis);
     const modelMat = mat4.create();
     const projMat = mat4.create();
-    mat4.perspective(projMat, 1.1, canvas.width/canvas.height, 0.1, 100);
+    mat4.perspective(projMat, 0.9, canvas.width/canvas.height, 0.1, 100);
     // const orthoZoom = 3;
     // const aspect = canvas.height / canvas.width;
     // mat4.ortho(projMat, -orthoZoom, orthoZoom, -orthoZoom * aspect, orthoZoom * aspect, 0.1, 100);
@@ -89,13 +89,15 @@ window.onload = () => {
     Grid.set(grid, [0, 0, 0], Blocks.stone);
     Grid.set(grid, [1, 0, 0], Blocks.stone);
     Grid.set(grid, [0, 1, 0], Blocks.stone);
-    
-    const gridRenderer = GridRenderer.new();
-    GridRenderer.update(gridRenderer, grid);
+
+    // we are definitely facing -Z
+    const lgr = new LayeredGridRenderer();
+    lgr.setCamera([0, 0, -1], vec3.create());
+    lgr.updateModels(grid);
 
     const highlightBlock = vec3.create(); // whole coordinates
     const cameraTranslation = vec3.create();
-    const CAMERA_SHIFT: vec3 = [ 0.5, 0.5, 3.5 ];
+    const CAMERA_SHIFT: vec3 = [ 0.5, 0.5, 7.5 ];
     
     const ANIMATION_LENGTH = 75;
     const animationStartPos: vec3 = vec3.create();
@@ -147,7 +149,8 @@ window.onload = () => {
         if (input.keyDown['KeyE'])
             highlightBlock[2]--;
 
-        if (!vec3.equals(highlightBlock, oldHighlightBlock)) {
+        const moved = !vec3.equals(highlightBlock, oldHighlightBlock);
+        if (moved) {
             vec3.copy(animationStartPos, highlightBlockAnimated);
             camRotationXStart = camRotationXAnimated;
             camRotationYStart = camRotationYAnimated;
@@ -161,13 +164,14 @@ window.onload = () => {
             camRotationYAnimated = lerp(camRotationYStart, camRotationY, t);
         }
 
+        let changed = false;
         if (input.keyDown['Space']) {
             if (Grid.inBounds(grid, highlightBlock)) {
                 const out: [Block, number] = [null, 0];
-                Grid.getNullable(grid, highlightBlock, out);
+                Grid.getN(grid, highlightBlock, out);
                 const nextBlock: Block = out[0] ? null : Blocks.stone;
                 Grid.set(grid, highlightBlock, nextBlock);
-                GridRenderer.update(gridRenderer, grid);
+                changed = true;
             }
         }
 
@@ -175,6 +179,10 @@ window.onload = () => {
         // mat4.fromRotation(modelMat, modelRotation * 3.14159 / 180.0, [0,1,0]);
         // mat4.rotateX(modelMat, modelMat, 0.1 * sin(totalTime * 2.5));
         // mat4.translate(modelMat, modelMat, [ -0.5, -0.5, -0.5 ]);
+
+        lgr.setCamera(lgr._facingAxis, highlightBlock);
+        if (moved || changed)
+            lgr.updateModels(grid);
 
         vec3.add(cameraTranslation, highlightBlockAnimated, CAMERA_SHIFT);
         vec3.negate(cameraTranslation, cameraTranslation);
@@ -188,7 +196,8 @@ window.onload = () => {
         mat4.mul(mvpMat, projMat, mvpMat);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        GridRenderer.render(gridRenderer, renderInfo);
+        //GridRenderer.render(gridRenderer, renderInfo);
+        lgr.render(renderInfo);
     };
     loop(performance.now());
 };

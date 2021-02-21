@@ -4,7 +4,9 @@ out highp vec4 FragColor;
 
 in highp float faceNum;
 
+uniform highp float alpha;
+
 void main()
 {
-    FragColor = vec4(vec3(faceNum / 8.0), .7);
+    FragColor = vec4(vec3(faceNum / 8.0), alpha);
 }

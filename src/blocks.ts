@@ -1,8 +1,9 @@
 import { vec3, mat4 } from 'gl-matrix';
 import { Grid } from './grid';
 import { GLModel, Model, models } from './models';
-import { BlockRenderer, BlockGLRenderer, ModelCombiner, GLRenderInfo } from './render';
+import { BlockRenderer, MaterialRenderer, ModelCombiner, GLRenderInfo } from './render';
 import { initShader, initProgram } from './shader';
+import { materialRegistry } from './materials';
 import vertSrc from './test_vert.glsl';
 import fragSrc from './test_frag.glsl';
 
@@ -17,13 +18,16 @@ export interface Block {
 let blockIdCounter = 0;
 let renderIdCounter = 0;
 
-class SolidBlockGLRenderer implements BlockGLRenderer {
+class DefaultMaterialRenderer implements MaterialRenderer {
     vao: WebGLVertexArrayObject;
     vbo: WebGLBuffer;
     ebo: WebGLBuffer;
     program: WebGLProgram;
     loc_mvp: WebGLUniformLocation;
+    loc_alpha: WebGLUniformLocation;
     nElements: number;
+
+    materialName: 'default';
 
     constructor() {
     }
@@ -37,6 +41,7 @@ class SolidBlockGLRenderer implements BlockGLRenderer {
         const frag = initShader('test_frag', fragSrc, gl.FRAGMENT_SHADER);
         this.program = initProgram(vert, frag);
         this.loc_mvp = gl.getUniformLocation(this.program, 'mvp');
+        this.loc_alpha = gl.getUniformLocation(this.program, 'alpha');
 
         gl.bindVertexArray(this.vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
@@ -57,15 +62,19 @@ class SolidBlockGLRenderer implements BlockGLRenderer {
     }
 
     renderCombinedModel(info: GLRenderInfo) {
+        const alpha = info.alpha;
+
         gl.bindVertexArray(this.vao);
         gl.useProgram(this.program);
         gl.uniformMatrix4fv(this.loc_mvp, false, info.mvp);
+        gl.uniform1f(this.loc_alpha, alpha);
         gl.drawElements(gl.TRIANGLES, this.nElements, gl.UNSIGNED_INT, 0);
     }
 }
+materialRegistry.add('default', () => new DefaultMaterialRenderer());
 
 const solidBlockRenderer: BlockRenderer = {
-    id: ++renderIdCounter,
+    materialName: 'default',
     nModels: 1,
     render: (grid, coords, block, state, out) => {
         const mat = mat4.create();
@@ -74,8 +83,7 @@ const solidBlockRenderer: BlockRenderer = {
             mat);
         ModelCombiner.addModel(out, model);
         console.log('Added model', model);
-    },
-    createBlockGLRenderer: () => new SolidBlockGLRenderer()
+    }
 };
 
 const blockRegistry: Block[] = [];

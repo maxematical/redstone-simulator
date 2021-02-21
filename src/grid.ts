@@ -75,7 +75,13 @@ export const Grid = {
 
     get: (grid: Grid, xyz: vec3, out: [Block, number]) => Grid._get(grid, xyz, out, false),
 
-    getNullable: (grid: Grid, xyz: vec3, out: [Block, number]) => Grid._get(grid, xyz, out, true),
+    getN: (grid: Grid, xyz: vec3, out: [Block, number]) => Grid._get(grid, xyz, out, true),
+
+    getBlockN: (grid: Grid, xyz: vec3): Block => {
+        const out: [Block, number] = [null, 0];
+        Grid._get(grid, xyz, out, true);
+        return out[0];
+    },
 
     _get: (grid: Grid, xyz: vec3, out: [Block, number], allowNull: boolean) => {
         Grid._boundsCheck(grid, xyz);
