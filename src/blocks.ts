@@ -45,8 +45,8 @@ class DefaultMaterialRenderer implements MaterialRenderer {
 
         gl.bindVertexArray(this.vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 16, 0);
-        gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 16, 12);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 20, 0);
+        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
         gl.enableVertexAttribArray(0);
         gl.enableVertexAttribArray(1);
     }
@@ -79,7 +79,16 @@ const solidBlockRenderer: BlockRenderer = {
     render: (grid, coords, block, state, out) => {
         const mat = mat4.create();
         mat4.translate(mat, mat, coords);
-        const model = Model.use(models.fullBlock, { nPerVertex: 1, data: [ 0, 1, 2, 3, 4, 5, 6, 7 ] },
+
+        const extraData = [];
+        for (let i = 0; i < 6; i++) {
+            extraData.push(0); extraData.push(1);
+            extraData.push(0); extraData.push(0);
+            extraData.push(1); extraData.push(1);
+            extraData.push(0); extraData.push(1);
+        }
+
+        const model = Model.use(models.texturedCube, { nPerVertex: 2, data: extraData },
             mat);
         ModelCombiner.addModel(out, model);
         console.log('Added model', model);

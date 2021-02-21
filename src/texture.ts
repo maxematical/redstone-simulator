@@ -1,0 +1,1 @@
+// const loadImage: (src: string): 

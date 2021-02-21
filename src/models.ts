@@ -73,7 +73,7 @@ const triangle: Model = {
         0, 1, 2
     ]
 };
-const fullBlock: Model = {
+const cube: Model = {
     vertices: [
         /*
          * +-> X
@@ -112,4 +112,23 @@ const fullBlock: Model = {
         0, 1, 3, 3, 1, 2
     ]
 };
-export const models = { triangle, fullBlock };
+
+// Similar to the cube model, but doesn't share vertices between its sides, allowing to put UVs on vertices
+const texturedCube: Model = { vertices: [], indices: [] };
+let k = 0;
+for (let i = 0; i < cube.indices.length / 6; i++) {
+    const ii = i * 6;
+    texturedCube.vertices.push(cube.vertices[cube.indices[ii]]);
+    texturedCube.vertices.push(cube.vertices[cube.indices[ii + 1]]);
+    texturedCube.vertices.push(cube.vertices[cube.indices[ii + 2]]);
+    texturedCube.vertices.push(cube.vertices[cube.indices[ii + 5]]);
+    texturedCube.indices.push(k);
+    texturedCube.indices.push(k + 1);
+    texturedCube.indices.push(k + 2);
+    texturedCube.indices.push(k + 2);
+    texturedCube.indices.push(k + 1);
+    texturedCube.indices.push(k + 3);
+    k += 4;
+}
+
+export const models = { triangle, cube, texturedCube };

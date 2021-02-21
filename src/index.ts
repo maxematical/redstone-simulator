@@ -6,6 +6,7 @@ import { Model, models } from './models';
 import { vec3, mat4 } from 'gl-matrix';
 import { Block, Blocks } from './blocks';
 import input from './input';
+import imgSrc from './redstone.png';
 
 var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
@@ -70,6 +71,8 @@ window.onload = () => {
     const fragShader = initShader('test_frag', fragSrc, gl.FRAGMENT_SHADER);
     const program = initProgram(vertShader, fragShader);
     const loc_mvp = gl.getUniformLocation(program, 'mvp');
+
+    const texture = gl.createTexture();
 
     let modelRotation = 0.0;
     const rotationAxis: vec3 = [ 0.2, 1.0, -0.2 ];
@@ -244,5 +247,16 @@ window.onload = () => {
         //GridRenderer.render(gridRenderer, renderInfo);
         lgr.render(renderInfo);
     };
-    loop(performance.now());
+    const image = new Image(32, 32);
+    image.src = imgSrc;
+    image.onload = () => {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 32, 32, 0, gl.RGB, gl.UNSIGNED_BYTE, image);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        loop(performance.now());
+    };
 };
