@@ -52,6 +52,8 @@ export const ModelCombiner = {
 
     clear: (self: ModelCombiner): void => {
         self._modelBuffer.splice(0);
+        self._totalVertices = 0;
+        self._totalIndices = 0;
     }
 };
 
@@ -127,6 +129,7 @@ export class LayerRenderer {
             minZ = max(minZ, min(a, b));
             maxZ = min(maxZ, max(a, b));
         }
+        console.log('slice' , planeNormal, planeStart, planeEnd);
 
         // Build a GLModel for each material
         // TODO Add option to render blocks in order, from farthest-to-camera to nearest-to-camera
@@ -178,17 +181,18 @@ export interface GLRenderInfo {
     [key: string]: any; // any additional info needed for rendering
 }
 
-const ALPHA_REGRESSION = [1.0, 0.3, 0.1];
+const ALPHA_REGRESSION = [0.2, 1.0, 0.3, 0.1];
 export class LayeredGridRenderer {
     _layers: LayerRenderer[];
     _facingAxis: vec3;
     _centerPos: vec3;
     _selectedLayer: number; // debug purposes
     constructor() {
-        this._layers = new Array(3);
+        this._layers = new Array(4);
         this._layers[0] = new LayerRenderer();
         this._layers[1] = new LayerRenderer();
         this._layers[2] = new LayerRenderer();
+        this._layers[3] = new LayerRenderer();
         this._facingAxis = vec3.create();
         this._centerPos = vec3.create();
         this._selectedLayer = 0;
@@ -196,21 +200,24 @@ export class LayeredGridRenderer {
     setCamera(facingAxis: vec3, centerPos: vec3) {
         vec3.copy(this._facingAxis, facingAxis);
         vec3.copy(this._centerPos, centerPos);
+        if (this._facingAxis[0] === -0) this._facingAxis[0] = 0;
     }
     updateModels(grid: Grid) {
+        console.log(this._facingAxis);
         const f = this._facingAxis;
         const c = this._centerPos;
         //const k = abs(f[0]) * c[0] + abs(f[1]) * c[1] + abs(f[2]) * c[2]; // the coordinate of centerPos along the facing-axis
-        const k = vec3.dot(f, c);
-        this._layers[0].updateModels(grid, this._facingAxis, k);
-        this._layers[1].updateModels(grid, this._facingAxis, k - 1, k - 1);
-        this._layers[2].updateModels(grid, this._facingAxis, k - 2, k - 2);
+        const k = Math.round(vec3.dot(f, c));
+        this._layers[0].updateModels(grid, this._facingAxis, k + 1, k + 10000);
+        this._layers[1].updateModels(grid, this._facingAxis, k);
+        this._layers[2].updateModels(grid, this._facingAxis, k - 1, k - 1);
+        this._layers[3].updateModels(grid, this._facingAxis, k - 2, k - 2);
     }
     render(info: GLRenderInfo) {
         // const info2 = { ...info, alpha: 1.0 - 0.3 * this._selectedLayer };
         // this._layers[this._selectedLayer].render(info2);
         const info2 = { ...info, alpha: 0.0 };
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
             info2.alpha = ALPHA_REGRESSION[i];
             this._layers[i].render(info2);
         }

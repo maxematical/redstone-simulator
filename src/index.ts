@@ -97,7 +97,7 @@ window.onload = () => {
 
     const highlightBlock = vec3.create(); // whole coordinates
     const temp = vec3.create();
-    const CAMERA_SHIFT: vec3 = [ 0.5, 0.5, 7.5 ];
+    const CAMERA_SHIFT: vec3 = [ 0, 0, 7.5 ];
     
     const ANIMATION_LENGTH = 75;
     const animationStartPos: vec3 = vec3.create();
@@ -106,15 +106,19 @@ window.onload = () => {
     let animationStartTime: DOMHighResTimeStamp = 0;
     const highlightBlockAnimated = vec3.create();
 
-    const CAM_ROTATE_X = 0;// 0.075;
-    const CAM_ROTATE_Y = 0;//-0.075;
+    const CAM_ROTATE_X =  0.03;
+    const CAM_ROTATE_Y = -0.03;
     let camRotationX = CAM_ROTATE_X;
     let camRotationY = CAM_ROTATE_Y;
     let camRotationXAnimated = camRotationX;
     let camRotationYAnimated = camRotationY;
     let camYaw = 0.0;
+    let camYawAnimated = 0.0;
+    let camYawAnimateStart = 0.0;
 
     const oldHighlightBlock = vec3.create();
+
+    const VEC3_HALF: vec3 = [0.5, 0.5, 0.5];
 
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
@@ -155,7 +159,8 @@ window.onload = () => {
             highlightBlock[0] += sin(camYaw);
             highlightBlock[2] -= cos(camYaw);
         }
-        
+        vec3.round(highlightBlock, highlightBlock);
+
         let rotated = false;
         if (input.keyDown['ArrowLeft']) {
             camYaw += 1.57079633;
@@ -165,12 +170,15 @@ window.onload = () => {
             camYaw -= 1.57079633;
             rotated = true;
         }
+        if (rotated)
+            camRotationX = 0;
 
         const moved = !vec3.equals(highlightBlock, oldHighlightBlock);
-        if (moved) {
+        if (moved || rotated) {
             vec3.copy(animationStartPos, highlightBlockAnimated);
             camRotationXStart = camRotationXAnimated;
             camRotationYStart = camRotationYAnimated;
+            camYawAnimateStart = camYawAnimated;
             animationStartTime = timestamp;
         }
 
@@ -179,6 +187,7 @@ window.onload = () => {
             vec3.lerp(highlightBlockAnimated, animationStartPos, highlightBlock, t);
             camRotationXAnimated = lerp(camRotationXStart, camRotationX, t);
             camRotationYAnimated = lerp(camRotationYStart, camRotationY, t);
+            camYawAnimated = lerp(camYawAnimateStart, camYaw, t);
         }
 
         let changed = false;
@@ -215,8 +224,9 @@ window.onload = () => {
         vec3.negate(temp, CAMERA_SHIFT);
         mat4.fromTranslation(cameraMat, temp);
         mat4.rotateX(cameraMat, cameraMat, camRotationXAnimated);
-        mat4.rotateY(cameraMat, cameraMat, camYaw + camRotationYAnimated);
+        mat4.rotateY(cameraMat, cameraMat, camYawAnimated + camRotationYAnimated);
         vec3.negate(temp, highlightBlockAnimated);
+        vec3.sub(temp, temp, VEC3_HALF);
         mat4.translate(cameraMat, cameraMat, temp);
 
         // mat4.fromYRotation(cameraMat, -camYaw);
