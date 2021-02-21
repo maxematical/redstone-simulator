@@ -195,13 +195,18 @@ window.onload = () => {
 
         let changed = false;
         if (input.keyDown['Space']) {
-            if (Grid.inBounds(grid, highlightBlock)) {
-                const out: [Block, number] = [null, 0];
-                Grid.getN(grid, highlightBlock, out);
-                const nextBlock: Block = out[0] ? null : Blocks.stone;
-                Grid.set(grid, highlightBlock, nextBlock);
-                changed = true;
+            if (!Grid.inBounds(grid, highlightBlock)) {
+                const newMin = vec3.create();
+                const newMax = vec3.create();
+                vec3.min(newMin, grid.min, highlightBlock);
+                vec3.max(newMax, grid.max, highlightBlock);
+                Grid.resize(grid, newMin, newMax);
             }
+            const out: [Block, number] = [null, 0];
+            Grid.getN(grid, highlightBlock, out);
+            const nextBlock: Block = out[0] ? null : Blocks.stone;
+            Grid.set(grid, highlightBlock, nextBlock);
+            changed = true;
         }
 
         // modelRotation += 180.0 * delta;

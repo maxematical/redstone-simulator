@@ -33,8 +33,10 @@ export const Grid = {
         vec3.add(newSize, newSize, [1, 1, 1]);
         const newData = Grid._createData(newSize);
 
-        const mins = [0, 1, 2].map(i => min(grid.min[i], newMin[i]));
-        const maxs = [0, 1, 2].map(i => max(grid.max[i], newMax[i]));
+        const mins = vec3.create();
+        const maxs = vec3.create();
+        vec3.min(mins, grid.min, newMin);
+        vec3.max(maxs, grid.max, newMax);
         const xyz = vec3.create();
         for (let x = mins[0]; x <= maxs[0]; x++) {
             for (let y = mins[1]; y <= maxs[1]; y++) {
