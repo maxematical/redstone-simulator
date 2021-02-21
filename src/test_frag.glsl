@@ -1,5 +1,8 @@
 #version 300 es
 
+precision highp int;
+precision highp float;
+
 out highp vec4 FragColor;
 
 in highp vec2 uv;
@@ -9,6 +12,17 @@ uniform sampler2D tex;
 
 void main()
 {
-    FragColor = texture(tex, uv * 0.25);
-    FragColor.a = alpha;
+    vec2 localUv = uv - floor(uv);
+    vec2 intUv = floor(uv);
+
+    // Change this if we ever resize the texture!!!
+    // This represents the size in pixels of each individual block texture in the atlas
+    float CELL_SIZE = 8.0;
+
+    float clampTo = 0.5 / CELL_SIZE;
+    localUv = clamp(localUv, clampTo, 1.0 - clampTo);
+    localUv.x=clamp(localUv.x,clampTo,1.0-clampTo);
+
+    FragColor = texture(tex, (localUv+intUv*1.0) * 0.125);
+    FragColor.a *= alpha;
 }

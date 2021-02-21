@@ -80,6 +80,7 @@ export const Grid = {
     getN: (grid: Grid, xyz: vec3, out: [Block, number]) => Grid._get(grid, xyz, out, true),
 
     getBlockN: (grid: Grid, xyz: vec3): Block => {
+        if (!Grid.inBounds(grid, xyz)) return null;
         const out: [Block, number] = [null, 0];
         Grid._get(grid, xyz, out, true);
         return out[0];

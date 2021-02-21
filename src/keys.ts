@@ -13,4 +13,7 @@ trackKeys.push('Space');
 // Arrow keys
 ['Up', 'Down', 'Left', 'Right'].forEach(k => trackKeys.push('Arrow' + k));
 
+// Number keys
+for (let i = 0; i <= 9; i++) trackKeys.push('Digit' + i);
+
 export default trackKeys;

@@ -5,7 +5,8 @@ export const initShader = (name: string, src: string, type: number): WebGLShader
     gl.shaderSource(shader, src);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.log(`Error compiling shader ${name}`, gl.getShaderInfoLog(shader));
+        console.error(`Error compiling shader ${name}`, gl.getShaderInfoLog(shader));
+        console.error(src);
         alert(`Shader compilation error: ${name}`);
         return null;
     }
@@ -18,7 +19,7 @@ export const initProgram = (vert: WebGLShader, frag: WebGLShader): WebGLProgram 
     gl.attachShader(program, frag);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.log('Error linking program', gl.getProgramInfoLog(program));
+        console.error('Error linking program', gl.getProgramInfoLog(program));
         alert('Program linkage error');
         return null;
     }

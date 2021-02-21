@@ -37,16 +37,10 @@ export const Model = {
             vec3.copy(vec, model.vertices[i]);
             if (transform)
                 vec3.transformMat4(vec, vec, transform);
-            
-            if (!flip) {
-                outVerts[i * step + 0] = vec[0];
-                outVerts[i * step + 1] = vec[1];
-                outVerts[i * step + 2] = vec[2];
-            } else {
-                outVerts[i * step + 0] = vec[2];
-                outVerts[i * step + 1] = vec[1];
-                outVerts[i * step + 2] = vec[0];
-            }
+
+            outVerts[i * step + 0] = vec[0];
+            outVerts[i * step + 1] = vec[1];
+            outVerts[i * step + 2] = vec[2];
 
             if (extraData) {
                 const index = extraData.nPerVertex * i;
@@ -55,9 +49,23 @@ export const Model = {
                 }
             }
         }
+
+        // Flip indices
+        let indices: Uint32Array;
+        if (!flip) {
+            indices = Uint32Array.from(model.indices);
+        } else {
+            indices = new Uint32Array(model.indices.length);
+            for (let i = 0; i < indices.length; i += 3) {
+                for (let j = 0; j < 3; j++) {
+                    indices[i + j] = model.indices[i + (2 - j)];
+                }
+            }
+        }
+
         return {
             vertexData: Float32Array.from(outVerts),
-            indices: Uint32Array.from(model.indices),
+            indices,
             dataPerVertex: step
         };
     }

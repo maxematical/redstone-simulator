@@ -1,7 +1,7 @@
 import { vec3, mat4 } from 'gl-matrix';
 import { Grid } from './grid';
 import { GLModel, Model, models } from './models';
-import { BlockRenderer, MaterialRenderer, ModelCombiner, GLRenderInfo } from './render';
+import { BlockRenderer, MaterialRenderer, ModelCombiner, GLRenderInfo, useUvs } from './render';
 import { initShader, initProgram } from './shader';
 import { materialRegistry } from './materials';
 import vertSrc from './test_vert.glsl';
@@ -58,7 +58,6 @@ class DefaultMaterialRenderer implements MaterialRenderer {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, model.indices, gl.STATIC_DRAW);
         this.nElements = model.indices.length;
-        console.log('Uploading model', model);
     }
 
     renderCombinedModel(info: GLRenderInfo) {
@@ -82,10 +81,7 @@ const solidBlockRenderer: BlockRenderer = {
 
         const extraData = [];
         for (let i = 0; i < 6; i++) {
-            extraData.push(0); extraData.push(1);
-            extraData.push(0); extraData.push(0);
-            extraData.push(1); extraData.push(1);
-            extraData.push(0); extraData.push(1);
+            useUvs(0, extraData, i * 8);
         }
 
         const model = Model.use(models.texturedCube, { nPerVertex: 2, data: extraData },
@@ -95,16 +91,42 @@ const solidBlockRenderer: BlockRenderer = {
     }
 };
 
+const redstoneDustRenderer: BlockRenderer = {
+    materialName: 'default',
+    nModels: 1,
+    render: (grid, coords, block, state, out) => {
+        const translateUp = 0.05;
+        const mat = mat4.create();
+        mat4.translate(mat, mat, coords);
+        mat4.translate(mat, mat, [0, translateUp, 0]);
+        mat4.scale(mat, mat, [1, 1 - translateUp, 1]);
+        
+        const extraData = [];
+        for (let i = 0; i < 6; i++) {
+            // Bottom face texured
+            const texture = (i === 5) ? 2 : 63;
+            useUvs(texture, extraData, i * 8);
+        }
+
+        const model = Model.use(models.texturedCube, { nPerVertex: 2, data: extraData }, mat, true);
+        ModelCombiner.addModel(out, model);
+    },
+};
+
 const blockRegistry: Block[] = [];
 
 const stone: Block = {
     id: ++blockIdCounter,
     renderer: solidBlockRenderer
-};
-blockRegistry[blockIdCounter] = stone;
+}; blockRegistry[blockIdCounter] = stone;
+const dust: Block = {
+    id: ++blockIdCounter,
+    renderer: redstoneDustRenderer
+}; blockRegistry[blockIdCounter] = dust;
 
 export const Blocks = {
     stone,
+    dust,
 
     blockRegistry,
     byId: (id: number, allowNull?: boolean): Block => {

@@ -7,7 +7,7 @@ import tuple from './tuples';
 
 declare var gl: WebGL2RenderingContext;
 
-const { abs, min, max } = Math;
+const { abs, min, max, floor } = Math;
 
 export interface ModelCombiner {
     _modelBuffer: GLModel[];
@@ -94,7 +94,7 @@ export interface MaterialRenderer {
 }
 
 export class LayerRenderer {
-    _materials: {[materialName: string]: [ModelCombiner, MaterialRenderer]};
+    _materials: { [materialName: string]: [ModelCombiner, MaterialRenderer] };
     _materialKeys: string[];
     constructor() {
         this._materials = {};
@@ -129,7 +129,7 @@ export class LayerRenderer {
             minZ = max(minZ, min(a, b));
             maxZ = min(maxZ, max(a, b));
         }
-        console.log('slice' , planeNormal, planeStart, planeEnd);
+        console.log('slice', planeNormal, planeStart, planeEnd);
 
         // Build a GLModel for each material
         // TODO Add option to render blocks in order, from farthest-to-camera to nearest-to-camera
@@ -178,6 +178,7 @@ export class LayerRenderer {
 
 export interface GLRenderInfo {
     mvp: Float32List;
+    time: DOMHighResTimeStamp;
     [key: string]: any; // any additional info needed for rendering
 }
 
@@ -186,7 +187,7 @@ export class LayeredGridRenderer {
     _layers: LayerRenderer[];
     _facingAxis: vec3;
     _centerPos: vec3;
-    _selectedLayer: number; // debug purposes
+    fadeLayers: boolean;
     constructor() {
         this._layers = new Array(4);
         this._layers[0] = new LayerRenderer();
@@ -195,7 +196,7 @@ export class LayeredGridRenderer {
         this._layers[3] = new LayerRenderer();
         this._facingAxis = vec3.create();
         this._centerPos = vec3.create();
-        this._selectedLayer = 0;
+        this.fadeLayers = true;
     }
     setCamera(facingAxis: vec3, centerPos: vec3) {
         vec3.copy(this._facingAxis, facingAxis);
@@ -214,12 +215,23 @@ export class LayeredGridRenderer {
         this._layers[3].updateModels(grid, this._facingAxis, k - 2, k - 2);
     }
     render(info: GLRenderInfo) {
-        // const info2 = { ...info, alpha: 1.0 - 0.3 * this._selectedLayer };
-        // this._layers[this._selectedLayer].render(info2);
         const info2 = { ...info, alpha: 0.0 };
         for (let i = 0; i < 4; i++) {
-            info2.alpha = ALPHA_REGRESSION[i];
+            let alpha = this.fadeLayers ? ALPHA_REGRESSION[i] : 1.0;
+            info2.alpha = alpha;
             this._layers[i].render(info2);
         }
     }
 }
+
+export const useUvs = (textureIndex: number, out: any[], outIndex: number): void => {
+    const k = 0.01;
+    const x0 = textureIndex % 8;
+    const y0 = floor(textureIndex / 8);
+    const x1 = x0 + 1;
+    const y1 = y0 + 1;
+    out[outIndex+0] = x0 + k; out[outIndex+1] = y1 - k;
+    out[outIndex+2] = x0 + k; out[outIndex+3] = y0 + k;
+    out[outIndex+4] = x1 - k; out[outIndex+5] = y1 - k;
+    out[outIndex+6] = x1 - k; out[outIndex+7] = y0 + k;
+};
