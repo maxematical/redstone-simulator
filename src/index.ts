@@ -11,7 +11,7 @@ var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
 var grid: Grid = Grid.new([1, 1, 1]);
 
-const { sin, min } = Math;
+const { cos, sin, min, round } = Math;
 
 const lerp = (a: number, b: number, t: number) => a * (1.0 - t) + b * t;
 
@@ -96,7 +96,7 @@ window.onload = () => {
     lgr.updateModels(grid);
 
     const highlightBlock = vec3.create(); // whole coordinates
-    const cameraTranslation = vec3.create();
+    const temp = vec3.create();
     const CAMERA_SHIFT: vec3 = [ 0.5, 0.5, 7.5 ];
     
     const ANIMATION_LENGTH = 75;
@@ -106,12 +106,13 @@ window.onload = () => {
     let animationStartTime: DOMHighResTimeStamp = 0;
     const highlightBlockAnimated = vec3.create();
 
-    const CAM_ROTATE_X = 0.05;
-    const CAM_ROTATE_Y = -0.05;
+    const CAM_ROTATE_X = 0;// 0.075;
+    const CAM_ROTATE_Y = 0;//-0.075;
     let camRotationX = CAM_ROTATE_X;
     let camRotationY = CAM_ROTATE_Y;
     let camRotationXAnimated = camRotationX;
     let camRotationYAnimated = camRotationY;
+    let camYaw = 0.0;
 
     const oldHighlightBlock = vec3.create();
 
@@ -129,11 +130,13 @@ window.onload = () => {
 
         vec3.copy(oldHighlightBlock, highlightBlock);
         if (input.keyDown['KeyA']) {
-            highlightBlock[0]--;
+            highlightBlock[0] -= cos(camYaw);
+            highlightBlock[2] -= sin(camYaw);
             camRotationY = -CAM_ROTATE_Y;
         }
         if (input.keyDown['KeyD']) {
-            highlightBlock[0]++;
+            highlightBlock[0] += cos(camYaw);
+            highlightBlock[2] += sin(camYaw);
             camRotationY = CAM_ROTATE_Y;
         }
         if (input.keyDown['KeyS']) {
@@ -144,10 +147,24 @@ window.onload = () => {
             highlightBlock[1]++;
             camRotationX = CAM_ROTATE_X;
         }
-        if (input.keyDown['KeyQ'])
-            highlightBlock[2]++;
-        if (input.keyDown['KeyE'])
-            highlightBlock[2]--;
+        if (input.keyDown['KeyQ']) {
+            highlightBlock[0] -= sin(camYaw);
+            highlightBlock[2] += cos(camYaw);
+        }
+        if (input.keyDown['KeyE']) {
+            highlightBlock[0] += sin(camYaw);
+            highlightBlock[2] -= cos(camYaw);
+        }
+        
+        let rotated = false;
+        if (input.keyDown['ArrowLeft']) {
+            camYaw += 1.57079633;
+            rotated = true;
+        }
+        if (input.keyDown['ArrowRight']) {
+            camYaw -= 1.57079633;
+            rotated = true;
+        }
 
         const moved = !vec3.equals(highlightBlock, oldHighlightBlock);
         if (moved) {
@@ -180,17 +197,35 @@ window.onload = () => {
         // mat4.rotateX(modelMat, modelMat, 0.1 * sin(totalTime * 2.5));
         // mat4.translate(modelMat, modelMat, [ -0.5, -0.5, -0.5 ]);
 
-        lgr.setCamera(lgr._facingAxis, highlightBlock);
-        if (moved || changed)
+        if (moved || rotated || changed) {
+            lgr.setCamera([ round(sin(camYaw)), 0, round(-cos(camYaw)) ], highlightBlock);
             lgr.updateModels(grid);
+        }
 
-        vec3.add(cameraTranslation, highlightBlockAnimated, CAMERA_SHIFT);
-        vec3.negate(cameraTranslation, cameraTranslation);
-        // mat4.fromYRotation(cameraMat, camRotationY);
+        vec3.add(temp, highlightBlockAnimated, CAMERA_SHIFT);
+        vec3.negate(temp, highlightBlockAnimated);
+        // mat4.fromYRotation(cameraMat, -camYaw);
+        // mat4.translate(cameraMat, )
+        
+        // mat4.fromTranslation(cameraMat, cameraTranslation);
+        // mat4.rotateY(cameraMat, cameraMat, -camYaw*.4);
+        // vec3.negate(cameraTranslation, CAMERA_SHIFT);
         // mat4.translate(cameraMat, cameraMat, cameraTranslation);
-        mat4.fromTranslation(cameraMat, cameraTranslation);
-        mat4.rotateY(cameraMat, cameraMat, camRotationYAnimated);
+
+        vec3.negate(temp, CAMERA_SHIFT);
+        mat4.fromTranslation(cameraMat, temp);
         mat4.rotateX(cameraMat, cameraMat, camRotationXAnimated);
+        mat4.rotateY(cameraMat, cameraMat, camYaw + camRotationYAnimated);
+        vec3.negate(temp, highlightBlockAnimated);
+        mat4.translate(cameraMat, cameraMat, temp);
+
+        // mat4.fromYRotation(cameraMat, -camYaw);
+        // mat4.fromTranslation(cameraMat, cameraTranslation);
+        // mat4.rotateY(cameraMat, cameraMat, camRotationYAnimated + camYaw);
+        // mat4.rotateX(cameraMat, cameraMat, camRotationXAnimated);
+        // mat4.fromXRotation(cameraMat, camRotationXAnimated*0);
+        // mat4.rotateY(cameraMat, cameraMat, camRotationYAnimated + camYaw);
+        // mat4.translate(cameraMat, cameraMat, cameraTranslation);
         mat4.identity(mvpMat);
         mat4.mul(mvpMat, cameraMat, modelMat);
         mat4.mul(mvpMat, projMat, mvpMat);

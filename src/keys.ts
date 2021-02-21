@@ -10,4 +10,7 @@ for (let keycode = 0x41; keycode <= 0x5A; keycode++)
 // Space keys
 trackKeys.push('Space');
 
+// Arrow keys
+['Up', 'Down', 'Left', 'Right'].forEach(k => trackKeys.push('Arrow' + k));
+
 export default trackKeys;
