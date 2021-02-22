@@ -1,7 +1,7 @@
 import { vec3 } from 'gl-matrix';
 import { Grid } from './grid';
 import { GLModel } from './models';
-import { Block, Blocks } from './blocks';
+import { Block, blocks } from './blocks';
 import { materialRegistry } from './materials';
 import tuple from './tuples';
 
@@ -230,8 +230,8 @@ export const useUvs = (textureIndex: number, out: any[], outIndex: number): void
     const y0 = floor(textureIndex / 8);
     const x1 = x0 + 1;
     const y1 = y0 + 1;
-    out[outIndex+0] = x0 + k; out[outIndex+1] = y1 - k;
-    out[outIndex+2] = x0 + k; out[outIndex+3] = y0 + k;
-    out[outIndex+4] = x1 - k; out[outIndex+5] = y1 - k;
-    out[outIndex+6] = x1 - k; out[outIndex+7] = y0 + k;
+    out[outIndex+0] = x0 + k; out[outIndex+1] = y0 - k;
+    out[outIndex+2] = x0 + k; out[outIndex+3] = y1 + k;
+    out[outIndex+4] = x1 - k; out[outIndex+5] = y0 - k;
+    out[outIndex+6] = x1 - k; out[outIndex+7] = y1 + k;
 };

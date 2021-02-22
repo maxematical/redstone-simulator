@@ -4,7 +4,8 @@ import fragSrc from './test_frag.glsl';
 import { Grid } from './grid';
 import { Model, models } from './models';
 import { vec3, mat4 } from 'gl-matrix';
-import { Block, Blocks } from './blocks';
+import { Block, blocks } from './blocks';
+import directions from './directions';
 import cursor from './cursor';
 import input from './input';
 import imgSrc from './redstone.png';
@@ -60,9 +61,9 @@ window.onload = () => {
     const mvpMat = new Float32Array(16);
     
     const grid = Grid.new([3, 3, 3]);
-    Grid.set(grid, [0, 0, 0], Blocks.stone);
-    Grid.set(grid, [1, 0, 0], Blocks.stone);
-    Grid.set(grid, [0, 1, 0], Blocks.stone);
+    Grid.set(grid, [0, 0, 0], blocks.stone);
+    Grid.set(grid, [1, 0, 0], blocks.stone);
+    Grid.set(grid, [0, 1, 0], blocks.stone);
 
     // we are definitely facing -Z
     const lgr = new LayeredGridRenderer();
@@ -156,7 +157,7 @@ window.onload = () => {
             camRotationX = 0;
 
         for (let i = 1; i <= 9; i++) {
-            if (input.keyDown['Digit' + i] && Blocks.blockRegistry[i]) {
+            if (input.keyDown['Digit' + i] && blocks.blockRegistry[i]) {
                 selectedBlockId = i;
             }
         }
@@ -190,9 +191,23 @@ window.onload = () => {
             }
             const out: [Block, number] = [null, 0];
             Grid.getN(grid, highlightBlock, out);
-            const nextBlock: Block = out[0] ? null : Blocks.blockRegistry[selectedBlockId];
+            const nextBlock: Block = out[0] ? null : blocks.blockRegistry[selectedBlockId];
             Grid.set(grid, highlightBlock, nextBlock);
             changed = true;
+
+            // Send update to adjacent blocks
+            // https://minecraft.gamepedia.com/Block_update#Sending
+            // TODO Also send updates when block's state changes
+            const neighborCoord = vec3.create();
+            for (let i = 0; i < 7; i++) {
+                const dir = i ? directions.wensdu[i - 1] : directions.none;
+                vec3.add(neighborCoord, highlightBlock, dir);
+                if (!Grid.inBounds(grid, neighborCoord))
+                    continue;
+                Grid.getN(grid, neighborCoord, out);
+                if (out[0])
+                    out[0].handleNeighborUpdate(grid, neighborCoord, out[1]);
+            }
         }
 
         if (moved || rotated || changed) {

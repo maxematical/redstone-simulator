@@ -1,4 +1,4 @@
-import { Block, Blocks } from './blocks';
+import { Block, blocks } from './blocks';
 import { vec3 } from 'gl-matrix';
 
 export interface Grid {
@@ -89,7 +89,7 @@ export const Grid = {
     _get: (grid: Grid, xyz: vec3, out: [Block, number], allowNull: boolean) => {
         Grid._boundsCheck(grid, xyz);
         const index = Grid.index(grid, xyz);
-        out[0] = Blocks.byId(grid.data[index], allowNull);
+        out[0] = blocks.byId(grid.data[index], allowNull);
         out[1] = grid.data[index + 1];
     },
 
