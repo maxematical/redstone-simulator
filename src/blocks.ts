@@ -362,7 +362,7 @@ const dust: Block = {
                     // the vertical line but still allow power to travel up
                     vec3.add(temp, coords, directions.down);
                     const onBlock = Grid.getBlockN(grid, temp);
-                    if (onBlock.preventDownwardsTransmission&&0)
+                    if (onBlock && onBlock.preventDownwardsTransmission)
                         continue;
                 }
 
@@ -376,7 +376,7 @@ const dust: Block = {
                 if (y === 1) {
                     vec3.add(temp, coords, dir);
                     const onBlock = Grid.getBlockN(grid, temp);
-                    if (!onBlock.preventDownwardsTransmission)
+                    if (!onBlock || !onBlock.preventDownwardsTransmission)
                         newState |= (1 << (11 - i));
                 }
             }
