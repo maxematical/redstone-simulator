@@ -87,7 +87,10 @@ export const Grid = {
     },
 
     _get: (grid: Grid, xyz: vec3, out: [Block, number], allowNull: boolean) => {
-        Grid._boundsCheck(grid, xyz);
+        if (allowNull)
+            if (!Grid.inBounds(grid, xyz)) return null;
+        else
+            Grid._boundsCheck(grid, xyz);
         const index = Grid.index(grid, xyz);
         out[0] = blocks.byId(grid.data[index], allowNull);
         out[1] = grid.data[index + 1];

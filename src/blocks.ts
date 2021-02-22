@@ -14,7 +14,13 @@ declare var gl: WebGL2RenderingContext;
 export interface Block {
     id: number;
     renderer: BlockRenderer;
-    attractsWires?: true;
+    attractsWires?: boolean;
+    /**
+     * If true, power can travel through wires up onto this block, but not down from this block.
+     * Visible in slabs and glowstone.
+     */
+    preventDownwardsTransmission?: boolean;
+    isTransparent?: boolean;
     handleNeighborUpdate(grid: Grid, coords: vec3, state: number);
 }
 
@@ -217,10 +223,12 @@ const stone: Block = {
 // the wire is travelling up a block to the west(-X), east(+X), north(-Z), or south(+Z), respectively.
 // The other 4 bits (mask 0xF0) are whether the wire is connected to the west, east, north, south
 // respectively.
+const DUST_Y_ORDER = [0, -1, 1];
 const dust: Block = {
     id: ++blockIdCounter,
     renderer: redstoneDustRenderer,
     attractsWires: true,
+    isTransparent: true,
     handleNeighborUpdate: (grid: Grid, coords: vec3, oldState: number) => {
         const out: [Block, number] = [null, 0]; // used later for getting blocks
 
@@ -231,14 +239,14 @@ const dust: Block = {
         // Search for possible connections and set bits corresponding to the direction of
         // that neighbor. First search the same level, then the next level
         const temp = vec3.create();
-        for (let y = -1; y <= 1; y++) {
+        for (let iy = 0; iy < DUST_Y_ORDER.length; iy++) {
+            const y = DUST_Y_ORDER[iy];
             for (let i = 0; i < directions.wens.length; i++) {
+                // Calculate offset coordinate
                 const dir = directions.wens[i];
                 vec3.add(temp, coords, dir);
                 if (y === -1) vec3.add(temp, temp, directions.down);
                 if (y === 1) vec3.add(temp, temp, directions.up);
-
-                // TODO Take into account "pinching"
 
                 // If there is a block that attracts wires here, set the bit for this direction
                 // Otherwise, the bit is already unset, so we don't need to do anything
@@ -246,14 +254,44 @@ const dust: Block = {
                 Grid.getN(grid, temp, out);
                 if (!out[0] || !out[0].attractsWires) continue;
 
-                // There is a block here and it attracts wires, set the corresponding bit
+                // "Pinching" - wires can't connect up/down if there's a block "pinching" the connection
+                // like so:
+                // rB
+                // Br   B=Solid block   R=redstone
+                // Also handle the "slab rule" I.e. no downwards transmission of power from slabs
+                if (y === 1) {
+                    // When going up: wire is pinched if there's a block above it
+                    vec3.add(temp, coords, directions.up);
+                    const pinchBlock = Grid.getBlockN(grid, temp);
+                    if (pinchBlock && !pinchBlock.isTransparent)
+                        continue;
+                } else if (y === -1) {
+                    // When going down: wire is pinched if there's a block on the adjacent side
+                    vec3.add(temp, coords, dir);
+                    const pinchBlock = Grid.getBlockN(grid, temp);
+                    if (pinchBlock && !pinchBlock.isTransparent)
+                        continue;
+                    
+                    // Some blocks (e.g. slabs) prevent power from travelling donwards
+                    vec3.add(temp, coords, directions.down);
+                    const onBlock = Grid.getBlockN(grid, temp);
+                    if (onBlock.preventDownwardsTransmission&&0)
+                        continue;
+                }
+
+                // The wire can connect here, set the corresponding bit
                 const bit = 7 - i;
                 newState |= (1 << bit);
                 anyConnection = true;
 
                 // If y is 1, also set the "up-one bit"
-                if (y === 1)
-                    newState |= (1 << (11 - i));
+                // But not if the connecting wire is on a slab
+                if (y === 1) {
+                    vec3.add(temp, coords, dir);
+                    const onBlock = Grid.getBlockN(grid, temp);
+                    if (!onBlock.preventDownwardsTransmission)
+                        newState |= (1 << (11 - i));
+                }
             }
         }
 
@@ -269,6 +307,8 @@ const dust: Block = {
 const slab: Block = {
     id: ++blockIdCounter,
     renderer: slabRenderer,
+    preventDownwardsTransmission: true,
+    isTransparent: true,
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = slab;
 
