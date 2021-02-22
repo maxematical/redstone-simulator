@@ -12,11 +12,12 @@ uniform sampler2D tex;
 
 void main()
 {
+    // Avoid sampling coordinates closer than 0.5 pixels to the edge
     vec2 localUv = uv - floor(uv);
     vec2 intUv = floor(uv);
 
-    // Change this if we ever resize the texture!!!
     // This represents the size in pixels of each individual block texture in the atlas
+    // Change this if we ever resize the textures!!!
     float CELL_SIZE = 8.0;
 
     float clampTo = 0.5 / CELL_SIZE;

@@ -224,14 +224,55 @@ export class LayeredGridRenderer {
     }
 }
 
-export const useUvs = (textureIndex: number, out: any[], outIndex: number): void => {
+/**
+ * Place the 4 UV-pairs for a quad at the specified position of an array.
+ * Important: Designed for triangle vertices order:
+ * (TopLeft, BottomLeft, TopRight, TopRight, BottomLeft, BottomRight).
+ * Other orders may not work.
+ * 
+ * @param textureIndex Index in the texture map. this is an integer counting from left to right,
+ * top to bottom. Top-left texture will have a textureIndex of 0, and in an 8x8 sprite atlas,
+ * bottom-right will have a textureIndex of 63. This is the parameter that determines the UVs
+ * put in.
+ * @param out The array to place UVs in
+ * @param outIndex The start index in the array to place UVs into
+ * @param rotation Optional, either 0, 90, 180, or 270. Rotates the texture counter-clockwise by
+ * the specified amount of degrees.
+ */
+export const useUvs = (textureIndex: number, out: any[], outIndex: number, rotation?: number): void => {
+    rotation = rotation || 0;
+    if (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270)
+        throw new Error(`Rotation not a valid value: ${rotation}`);
+
     const k = 0.01;
-    const x0 = textureIndex % 8;
-    const y0 = floor(textureIndex / 8);
-    const x1 = x0 + 1;
-    const y1 = y0 + 1;
-    out[outIndex+0] = x0 + k; out[outIndex+1] = y0 - k;
-    out[outIndex+2] = x0 + k; out[outIndex+3] = y1 + k;
-    out[outIndex+4] = x1 - k; out[outIndex+5] = y0 - k;
-    out[outIndex+6] = x1 - k; out[outIndex+7] = y1 + k;
+    const u0 = textureIndex % 8 + k;
+    const v0 = floor(textureIndex / 8) + k;
+    const u1 = u0 + 1 - 2 * k;
+    const v1 = v0 + 1 - 2 *k;
+
+    const uA = u0; const vA = v0;
+    const uB = u0; const vB = v1;
+    const uC = u1; const vC = v0;
+    const uD = u1; const vD = v1;
+    if (rotation === 0) {
+        out[outIndex+0] = uA; out[outIndex+1] = vA;
+        out[outIndex+2] = uB; out[outIndex+3] = vB;
+        out[outIndex+4] = uC; out[outIndex+5] = vC;
+        out[outIndex+6] = uD; out[outIndex+7] = vD;
+    } else if (rotation === 90) {
+        out[outIndex+0] = uB; out[outIndex+1] = vB;
+        out[outIndex+2] = uD; out[outIndex+3] = vD;
+        out[outIndex+4] = uA; out[outIndex+5] = vA;
+        out[outIndex+6] = uC; out[outIndex+7] = vC;
+    } else if (rotation === 180) {
+        out[outIndex+0] = uD; out[outIndex+1] = vD;
+        out[outIndex+2] = uC; out[outIndex+3] = vC;
+        out[outIndex+4] = uB; out[outIndex+5] = vB;
+        out[outIndex+6] = uA; out[outIndex+7] = vA;
+    } else {
+        out[outIndex+0] = uC; out[outIndex+1] = vC;
+        out[outIndex+2] = uA; out[outIndex+3] = vA;
+        out[outIndex+4] = uD; out[outIndex+5] = vD;
+        out[outIndex+6] = uB; out[outIndex+7] = vB;
+    }
 };

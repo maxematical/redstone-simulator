@@ -95,6 +95,7 @@ const solidBlockRenderer: BlockRenderer = {
 
 const WIRE_TEXTURE_PLUS = 2;
 const WIRE_TEXTURE_LINE = 3; // Unrotated is from -X to +X
+const WIRE_TEXTURE_LINE_2 = 7; // Unrotated is from -Z to +Z
 const WIRE_TEXTURE_CORNER = 4; // Unrotated is from -X to -Z
 const WIRE_TEXTURE_3WAY = 5; // Unrotated is from -X, -Z, and +X
 const WIRE_TEXTURE_DOT = 6;
@@ -107,23 +108,26 @@ const redstoneDustRenderer: BlockRenderer = {
         let wireTexture: number;
         let wireRotation: number; // in degrees
 
+        // Count connections
         let nConnections = 0;
         for (let bit = 4; bit <= 7; bit++)
             if (state & (1 << bit))
                 nConnections++;
 
+        // Handy variables
         const w = !!(state & 0x80);
         const e = !!(state & 0x40);
         const n = !!(state & 0x20);
         const s = !!(state & 0x10);
+
+        // Determine the shape and orientation of our texture
         if (nConnections === 0) {
             // 0 connections: Plus or dot
-            const isDot = (state & 0x100) === 1;
+            const isDot = (state & 0x200) === 1;
             wireTexture = isDot ? WIRE_TEXTURE_DOT : WIRE_TEXTURE_PLUS;
         } else if (nConnections === 1) {
             // 1 connection: Line
-            wireTexture = WIRE_TEXTURE_LINE;
-            wireRotation = (n || s) ? 90 : 0;
+            wireTexture = (e || w) ? WIRE_TEXTURE_LINE : WIRE_TEXTURE_LINE_2;
         } else if (nConnections === 2) {
             // 2 connections: Line or corner
             if (w && e) {
@@ -135,35 +139,42 @@ const redstoneDustRenderer: BlockRenderer = {
                 // 4 possible ways the corner can go
                 if (s && w) wireRotation = 90;
                 else if (s && e) wireRotation = 180;
-                else if (n && e) wireRotation = 270; // last case handled by default
+                else if (n && e) wireRotation = 270; // case for rotation=0 handled by default
             }
         } else if (nConnections === 3) {
             // 3 connections: T shape
             wireTexture = WIRE_TEXTURE_3WAY;
             if (!e) wireRotation = 90;
             else if (!n) wireRotation = 180;
-            else if (!w) wireRotation = 270; // last case handled by default
+            else if (!w) wireRotation = 270; // case for rotation=0 handled by default
         } else {
             // 4 connections: Plus
             wireTexture = WIRE_TEXTURE_PLUS;
         }
 
+        // Determine whether to render wires on the sides of adjacent blocks
+        const verticalWireW = !!(state & 0x800);
+        const verticalWireE = !!(state & 0x400);
+        const verticalWireN = !!(state & 0x200);
+        const verticalWireS = !!(state & 0x100);
+
         // Do normal render stuff
         const translateUp = 0.05;
         const mat = mat4.create();
         mat4.translate(mat, mat, coords);
-        if (wireRotation) {
-            mat4.translate(mat, mat, [0.5, 0.5, 0.5]);
-            mat4.rotateY(mat, mat, wireRotation * 0.0174532925);
-            mat4.translate(mat, mat, [-0.5, -0.5, -0.5]);
-        }
-        mat4.translate(mat, mat, [0, translateUp, 0]);
-        mat4.scale(mat, mat, [1, 1 - translateUp, 1]);
+        mat4.translate(mat, mat, [0.005, translateUp, 0.005]);
+        mat4.scale(mat, mat, [0.99, 1 - translateUp, 0.99]);
         
         const extraData = [];
         for (let i = 0; i < 6; i++) {
-            const sideTexture = (i === 5) ? wireTexture : 64;
-            useUvs(sideTexture, extraData, i * 8);
+            let faceTexture = 64;
+            if (i === 5) faceTexture = wireTexture;
+            else if (i === 1 && verticalWireW) faceTexture = WIRE_TEXTURE_LINE_2;
+            else if (i === 2 && verticalWireE) faceTexture = WIRE_TEXTURE_LINE_2;
+            else if (i === 3 && verticalWireN) faceTexture = WIRE_TEXTURE_LINE_2;
+            else if (i === 4 && verticalWireS) faceTexture = WIRE_TEXTURE_LINE_2;
+            const faceRotation = (i === 5) ? wireRotation : 0;
+            useUvs(faceTexture, extraData, i * 8, faceRotation);
         }
 
         const model = Model.use(models.texturedCube, { nPerVertex: 2, data: extraData }, mat, true);
@@ -201,9 +212,11 @@ const stone: Block = {
 // 1) Signal strength, 0-15. This is stored in the 4 least significant bits, mask 0xF.
 // 2) Connected ness. Wire can be connected in a line, T, cross, or none. When disconnected
 // can be set to either a cross shape or a dot shape. This is stored in the next 5 significant
-// bits, mask 0x1F0. (Counting from MSB to LSB:) First bit is cross(0) or dot(1), relevant only
-// when disconnected (ie. other bits mask 0xF0 are 0). The next 4 bits are whether the wire is
-// connected to the west(-X), east(+X), north(-Z), or south(+Z), respectively.
+// bits, mask 0x1FF0. (Counting from MSB to LSB:) First bit is cross(0) or dot(1), relevant only
+// when disconnected (ie. other bits mask 0xF0 are 0). The next 4 bits (mask 0xF00) are whether
+// the wire is travelling up a block to the west(-X), east(+X), north(-Z), or south(+Z), respectively.
+// The other 4 bits (mask 0xF0) are whether the wire is connected to the west, east, north, south
+// respectively.
 const dust: Block = {
     id: ++blockIdCounter,
     renderer: redstoneDustRenderer,
@@ -215,28 +228,37 @@ const dust: Block = {
         let newState = oldState & 0xF;
         let anyConnection = false;
 
-        // Search same level
+        // Search for possible connections and set bits corresponding to the direction of
+        // that neighbor. First search the same level, then the next level
         const temp = vec3.create();
-        for (let i = 0; i < directions.wens.length; i++) {
-            const dir = directions.wens[i];
-            
-            // If there is a block that attracts wires here, set the bit for this direction
-            // Otherwise, the bit is already unset, so we don't need to do anything
-            vec3.add(temp, coords, dir);
-            if (!Grid.inBounds(grid, temp)) continue;
-            Grid.getN(grid, temp, out);
-            if (!out[0] || !out[0].attractsWires) continue;
+        for (let y = -1; y <= 1; y++) {
+            for (let i = 0; i < directions.wens.length; i++) {
+                const dir = directions.wens[i];
+                vec3.add(temp, coords, dir);
+                if (y === -1) vec3.add(temp, temp, directions.down);
+                if (y === 1) vec3.add(temp, temp, directions.up);
 
-            // There is a block here and it attracts wires, set the corresponding bit
-            const bit = 7 - i;
-            newState |= (1 << bit);
-            anyConnection = true;
+                // TODO Take into account "pinching"
+
+                // If there is a block that attracts wires here, set the bit for this direction
+                // Otherwise, the bit is already unset, so we don't need to do anything
+                if (!Grid.inBounds(grid, temp)) continue;
+                Grid.getN(grid, temp, out);
+                if (!out[0] || !out[0].attractsWires) continue;
+
+                // There is a block here and it attracts wires, set the corresponding bit
+                const bit = 7 - i;
+                newState |= (1 << bit);
+                anyConnection = true;
+
+                // If y is 1, also set the "up-one bit"
+                if (y === 1)
+                    newState |= (1 << (11 - i));
+            }
         }
 
-        // TODO: Search up/down levels
-
         // If there is a connection, plus/dot bit should be zero, otherwise keep it the same as before
-        const plusDotValue = anyConnection ? 0 : oldState & 0x100;
+        const plusDotValue = anyConnection ? 0 : oldState & 0x200;
         newState |= plusDotValue << 8;
 
         // Set the new state
