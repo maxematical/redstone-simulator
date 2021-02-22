@@ -332,11 +332,17 @@ const dust: Block = {
                 if (y === -1) vec3.add(temp, temp, directions.down);
                 if (y === 1) vec3.add(temp, temp, directions.up);
 
-                // If there is a block that attracts wires here, set the bit for this direction
+                // If there is a block that the wire can connect to here, set the bit for this direction
                 // Otherwise, the bit is already unset, so we don't need to do anything
                 if (!Grid.inBounds(grid, temp)) continue;
                 Grid.getN(grid, temp, out);
-                if (!out[0] || !out[0].attractsWires) continue;
+                if (!out[0]) continue;
+                // Wire can connect to the block in 2 cases:
+                // 1) Wire and block are on the same level and block has "attractsWires" set to true
+                // 2) Wire and block are on different levels, but the block in question is another wire
+                const connectionCase1 = (y === 0) && !!out[0].attractsWires;
+                const connectionCase2 = (y !== 0) && out[0] === blocks.dust;
+                if (!connectionCase1 && !connectionCase2) continue;
 
                 // "Pinching" - wires can't connect up/down if there's a block "pinching" the connection
                 // like so:
