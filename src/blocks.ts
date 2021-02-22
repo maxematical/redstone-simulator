@@ -87,7 +87,6 @@ const solidBlockRenderer: BlockRenderer = {
         const model = Model.use(models.texturedCube, { nPerVertex: 2, data: extraData },
             mat);
         ModelCombiner.addModel(out, model);
-        console.log('Added model', model);
     }
 };
 
@@ -104,7 +103,7 @@ const redstoneDustRenderer: BlockRenderer = {
         const extraData = [];
         for (let i = 0; i < 6; i++) {
             // Bottom face texured
-            const texture = (i === 5) ? 2 : 63;
+            const texture = (i === 5) ? 2 : 64;
             useUvs(texture, extraData, i * 8);
         }
 

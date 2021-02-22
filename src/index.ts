@@ -82,7 +82,7 @@ window.onload = () => {
 
     const CAM_ROTATE_X_1 = 0.00;
     const CAM_ROTATE_X_2 = 0.15;
-    const CAM_ROTATE_Y = -0.05;
+    const CAM_ROTATE_Y = -0.025;
     let camRotationX = CAM_ROTATE_X_2;
     let camRotationY = CAM_ROTATE_Y;
     let camRotationXAnimated = camRotationX;

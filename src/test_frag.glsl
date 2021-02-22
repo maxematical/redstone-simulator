@@ -21,8 +21,7 @@ void main()
 
     float clampTo = 0.5 / CELL_SIZE;
     localUv = clamp(localUv, clampTo, 1.0 - clampTo);
-    localUv.x=clamp(localUv.x,clampTo,1.0-clampTo);
 
-    FragColor = texture(tex, (localUv+intUv*1.0) * 0.125);
+    FragColor = texture(tex, (localUv + intUv) * 0.125);
     FragColor.a *= alpha;
 }
