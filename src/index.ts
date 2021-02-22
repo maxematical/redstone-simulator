@@ -9,6 +9,7 @@ import directions from './directions';
 import cursor from './cursor';
 import input from './input';
 import imgSrc from './redstone.png';
+import { Simulator, BlockUpdate } from './simulator';
 
 var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
@@ -81,9 +82,9 @@ window.onload = () => {
     let animationStartTime: DOMHighResTimeStamp = 0;
     const highlightBlockAnimated = vec3.create();
 
-    const CAM_ROTATE_X_1 = 0.00;
+    const CAM_ROTATE_X_1 = 0.15;
     const CAM_ROTATE_X_2 = 0.15;
-    const CAM_ROTATE_Y = -0.025;
+    const CAM_ROTATE_Y = -0.025*0;
     let camRotationX = CAM_ROTATE_X_2;
     let camRotationY = CAM_ROTATE_Y;
     let camRotationXAnimated = camRotationX;
@@ -97,6 +98,14 @@ window.onload = () => {
     const VEC3_HALF: vec3 = [0.5, 0.5, 0.5];
 
     let selectedBlockId = 1;
+
+    const simulator = new Simulator(grid);
+
+    // Trigger block updates when blocks are placed or destroyed
+    grid.onSet = (coords: vec3, newBlock: Block | null, newState: number, oldBlock: Block | null, oldState: number) => {
+        if (oldBlock) oldBlock.updateNeighbors(grid, coords, oldState, simulator);
+        if (newBlock) newBlock.updateNeighbors(grid, coords, newState, simulator);
+    };
 
     cursor.init();
 
@@ -195,26 +204,27 @@ window.onload = () => {
             Grid.set(grid, highlightBlock, nextBlock);
             changed = true;
 
-            // Send update to adjacent blocks
-            // https://minecraft.gamepedia.com/Block_update#Sending
-            // TODO Also send updates when block's state changes
-            const neighborCoord = vec3.create();
-            for (let i = 0; i < 7; i++) {
-                const dir = i ? directions.wensdu[i - 1] : directions.none;
-                vec3.add(neighborCoord, highlightBlock, dir);
-                if (!Grid.inBounds(grid, neighborCoord))
-                    continue;
-                Grid.getN(grid, neighborCoord, out);
-                if (out[0])
-                    out[0].handleNeighborUpdate(grid, neighborCoord, out[1]);
-            }
+            // Block update will be automatically sent via grid hook
+
+            // // Send update to adjacent blocks
+            // // https://minecraft.gamepedia.com/Block_update#Sending
+            // // simulator.queueBlockUpdate().setPostPlacement(highlightBlock);
+            // simulator.queueBlockUpdate().set(highlightBlock, directions.x);
         }
 
-        if (moved || rotated || changed) {
+        if (moved || rotated || changed || grid.isDirty) {
             lgr.setCamera([ round(sin(camYaw)), 0, round(-cos(camYaw)) ], highlightBlock);
             lgr.updateModels(grid);
+            grid.isDirty = false;
+            // TODO Right now we update EVERY model on the grid when it changes(is dirty) even
+            // if its only 1 block that changed
+            // In the future, track the blocks that changed so we only need to update those models
         }
 
+        simulator.doGameTick();
+
+        // Do rendering
+        // Setup mvp matrices
         vec3.negate(temp, CAMERA_SHIFT);
         mat4.fromTranslation(cameraMat, temp);
         mat4.rotateX(cameraMat, cameraMat, camRotationXAnimated);
@@ -227,7 +237,6 @@ window.onload = () => {
         mat4.mul(mvpMat, cameraMat, modelMat);
         mat4.mul(mvpMat, projMat, mvpMat);
 
-        // Do rendering
         renderInfo.time = totalTime;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.bindTexture(gl.TEXTURE_2D, texture);

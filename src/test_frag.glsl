@@ -25,4 +25,7 @@ void main()
 
     FragColor = texture(tex, (localUv + intUv) * 0.125);
     FragColor.a *= alpha;
+
+// TODO Render transparent blocks in another path to reduce discards
+    if (FragColor.a < 0.1) discard;
 }

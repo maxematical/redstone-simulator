@@ -1,11 +1,17 @@
 import { Block, blocks } from './blocks';
 import { vec3 } from 'gl-matrix';
 
+export interface GridSetCallback {
+    (coords: vec3, newBlock: Block | null, newState: number, oldBlock: Block | null, oldState: number): void;
+}
+
 export interface Grid {
     size: vec3;
     min: vec3,
     max: vec3, // inclusive
     data: number[];
+    isDirty: boolean;
+    onSet: GridSetCallback | null;
 };
 
 const { min, max } = Math;
@@ -21,7 +27,9 @@ export const Grid = {
             size,
             min,
             max,
-            data: Grid._createData(size)
+            data: Grid._createData(size),
+            isDirty: true,
+            onSet: null
         };
     },
 
@@ -58,6 +66,7 @@ export const Grid = {
         grid.min = newMin;
         grid.max = newMax;
         grid.data = newData;
+        grid.isDirty = true;
     },
 
     inBounds: (grid: Grid, xyz: vec3): boolean => Grid._inBounds(grid.min, grid.max, xyz),
@@ -88,7 +97,11 @@ export const Grid = {
 
     _get: (grid: Grid, xyz: vec3, out: [Block, number], allowNull: boolean) => {
         if (allowNull)
-            if (!Grid.inBounds(grid, xyz)) return null;
+            if (!Grid.inBounds(grid, xyz)) {
+                out[0] = null;
+                out[1] = 0;
+                return;
+            }
         else
             Grid._boundsCheck(grid, xyz);
         const index = Grid.index(grid, xyz);
@@ -97,10 +110,24 @@ export const Grid = {
     },
 
     set: (grid: Grid, xyz: vec3, block: Block | null, state?: number) => {
+        state = state || 0;
+
+        // Check that we are within bounds
         Grid._boundsCheck(grid, xyz);
+
+        // Get old block (Needed or callback function)
         const index = Grid.index(grid, xyz);
+        const oldBlock: Block | null = blocks.byId(grid.data[index], true);
+        const oldState: number = grid.data[index];
+
+        // Set new data
         grid.data[index] = block ? block.id : 0;
-        grid.data[index + 1] = state || 0;
+        grid.data[index + 1] = state;
+
+        // Call hooks
+        grid.isDirty = true;
+        if (grid.onSet)
+            grid.onSet(xyz, block, state, oldBlock, oldState);
     },
 
     _boundsCheck: (grid: Grid, xyz: vec3) => {

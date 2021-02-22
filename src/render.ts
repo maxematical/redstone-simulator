@@ -42,7 +42,6 @@ export const ModelCombiner = {
                 indices[indicesIndex++] = model.indices[j] + modelStartVertex;
             modelStartVertex += model.vertexData.length / model.dataPerVertex;
         }
-        console.log('in combine()', vertexData, indices);
         return {
             vertexData: Float32Array.from(vertexData),
             indices: Uint32Array.from(indices),
@@ -129,7 +128,6 @@ export class LayerRenderer {
             minZ = max(minZ, min(a, b));
             maxZ = min(maxZ, max(a, b));
         }
-        console.log('slice', planeNormal, planeStart, planeEnd);
 
         // Build a GLModel for each material
         // TODO Add option to render blocks in order, from farthest-to-camera to nearest-to-camera
@@ -204,7 +202,6 @@ export class LayeredGridRenderer {
         if (this._facingAxis[0] === -0) this._facingAxis[0] = 0;
     }
     updateModels(grid: Grid) {
-        console.log(this._facingAxis);
         const f = this._facingAxis;
         const c = this._centerPos;
         //const k = abs(f[0]) * c[0] + abs(f[1]) * c[1] + abs(f[2]) * c[2]; // the coordinate of centerPos along the facing-axis

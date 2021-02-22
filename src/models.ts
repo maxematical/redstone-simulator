@@ -1,4 +1,5 @@
 import { vec3, mat4 } from 'gl-matrix';
+import { clamp } from './util';
 
 export interface Model {
     vertices: vec3[];
@@ -140,4 +141,34 @@ for (let i = 0; i < cube.indices.length / 6; i++) {
     k += 4;
 }
 
-export const models = { triangle, cube, texturedCube };
+// Like the textured cube model, but shift vertices inwards (horizontally) by 3 pixels
+const torch: Model = { vertices: [], indices: [] };
+const TORCH_SHIFT = 3.0 / 8.0;
+const torchShiftTemp = vec3.create();
+for (let i = 0; i < texturedCube.vertices.length / 4; i++) {
+    const vert0 = vec3.clone(texturedCube.vertices[i*4]);
+    const vert1 = vec3.clone(texturedCube.vertices[i*4+1]);
+    const vert2 = vec3.clone(texturedCube.vertices[i*4+2]);
+    const vert3 = vec3.clone(texturedCube.vertices[i*4+3]);
+    let shiftX = 0;
+    let shiftY = 0;
+    let shiftZ = 0;
+    if (i === 0) shiftY = -2.0 / 8.0; // Top side
+    else if (i === 1) shiftX = TORCH_SHIFT; // -X side
+    else if (i === 2) shiftX = -TORCH_SHIFT; // +X side
+    else if (i === 3) shiftZ = TORCH_SHIFT; // -Z side
+    else if (i === 4) shiftZ = -TORCH_SHIFT; // +Z side
+    vec3.set(torchShiftTemp, shiftX, shiftY, shiftZ);
+    vec3.add(vert0, vert0, torchShiftTemp);
+    vec3.add(vert1, vert1, torchShiftTemp);
+    vec3.add(vert2, vert2, torchShiftTemp);
+    vec3.add(vert3, vert3, torchShiftTemp);
+    torch.vertices[i*4] = vert0;
+    torch.vertices[i*4+1] = vert1;
+    torch.vertices[i*4+2] = vert2;
+    torch.vertices[i*4+3] = vert3;
+};
+for (let i = 0; i < texturedCube.indices.length; i++)
+    torch.indices.push(texturedCube.indices[i]);
+
+export const models = { triangle, cube, texturedCube, torch };

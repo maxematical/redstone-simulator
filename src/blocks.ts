@@ -1,14 +1,17 @@
-import { vec3, mat4 } from 'gl-matrix';
+import { vec3, mat4, ReadonlyVec3 } from 'gl-matrix';
 import { Grid } from './grid';
 import { GLModel, Model, models } from './models';
 import { BlockRenderer, MaterialRenderer, ModelCombiner, GLRenderInfo, useUvs } from './render';
 import { initShader, initProgram } from './shader';
 import { materialRegistry } from './materials';
+import { Simulator, BlockUpdate } from './simulator';
 import directions from './directions';
 import vertSrc from './test_vert.glsl';
 import fragSrc from './test_frag.glsl';
 
 declare var gl: WebGL2RenderingContext;
+
+const { abs } = Math;
 
 /** Defines a type of block. There is one instance of these per TYPE of block (not per block). */
 export interface Block {
@@ -21,8 +24,18 @@ export interface Block {
      */
     preventDownwardsTransmission?: boolean;
     isTransparent?: boolean;
-    handleNeighborUpdate(grid: Grid, coords: vec3, state: number);
+    /**
+     * Called when this block is placed, destroyed, or updated. The block should call
+     * Simulator.queueNeighborUpdate() to update its neighbors. For most blocks, this is not a complex method
+     * and an implementation generated with genUpdateNeighbors().
+     */
+    updateNeighbors(grid: Grid, coords: vec3, state: number, simulator: Simulator);
+    handleNeighborUpdate(grid: Grid, coords: vec3, state: number, simulator: Simulator);
 }
+
+const genUpdateNeighbors = (range: ReadonlyVec3[]) => (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
+    simulator.queueBlockUpdate().set(coords, range);
+};
 
 let blockIdCounter = 0;
 let renderIdCounter = 0;
@@ -129,7 +142,7 @@ const redstoneDustRenderer: BlockRenderer = {
         // Determine the shape and orientation of our texture
         if (nConnections === 0) {
             // 0 connections: Plus or dot
-            const isDot = (state & 0x200) === 1;
+            const isDot = (state & 0x1000) === 1;
             wireTexture = isDot ? WIRE_TEXTURE_DOT : WIRE_TEXTURE_PLUS;
         } else if (nConnections === 1) {
             // 1 connection: Line
@@ -205,11 +218,46 @@ const slabRenderer: BlockRenderer = {
     }
 };
 
+const torchRenderer: BlockRenderer = {
+    materialName: 'default',
+    nModels: 1,
+    render: (grid, coords, block, state, out) => {
+        const mat = mat4.create();
+        mat4.translate(mat, mat, coords);
+        
+        const uvs = [];
+        for (let i = 0; i < 6; i++) {
+            let faceTexture = 8; // Side texture
+            if (i === 0) faceTexture = 9; // Top texture
+            else if (i === 5) faceTexture = 10; // Bottom texture
+            useUvs(faceTexture, uvs, i*8);
+        }
+
+        const model = Model.use(models.torch, { nPerVertex: 2, data: uvs }, mat);
+        ModelCombiner.addModel(out, model);
+    }
+};
+
+const ONE_BLOCK_TAXICAB: ReadonlyVec3[] = [];
+const TWO_BLOCKS_TAXICAB: ReadonlyVec3[] = [];
+for (let x = -2; x <= 2; x++) {
+    for (let y = -2; y <= 2; y++) {
+        for (let z = -2; z <= 2; z++) {
+            const taxicabDist = abs(x) + abs(y) + abs(z);
+            if (taxicabDist === 0) continue;
+            const vec = vec3.fromValues(x, y, z);
+            if (taxicabDist <= 1) ONE_BLOCK_TAXICAB.push(vec);
+            if (taxicabDist <= 2) TWO_BLOCKS_TAXICAB.push(vec);
+        }
+    }
+}
+
 const blockRegistry: Block[] = [];
 
 const stone: Block = {
     id: ++blockIdCounter,
     renderer: solidBlockRenderer,
+    updateNeighbors: genUpdateNeighbors(ONE_BLOCK_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = stone;
 
@@ -229,7 +277,43 @@ const dust: Block = {
     renderer: redstoneDustRenderer,
     attractsWires: true,
     isTransparent: true,
-    handleNeighborUpdate: (grid: Grid, coords: vec3, oldState: number) => {
+    updateNeighbors: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
+        // Send updates within a 2-block taxicab distance, but also send updates to the blocks
+        // above and below any non-wire blocks that the dust is pointing to
+        simulator.queueBlockUpdate().set(coords, TWO_BLOCKS_TAXICAB);
+
+        // Search in each direction, if we are facing into a block there and it's not a wire
+        // block, then send an update that way
+        // TODO Test if this works!
+        let alsoUpdate: vec3[] = null;
+        let out: [Block, number] = null;
+        for (let dir = 0; dir < 4; dir++) {
+            const dirBit = 7 - dir;
+            const dirVec = directions.wens[dir];
+            const isFacingDirection = !!(state & (1 << dirBit));
+            if (isFacingDirection) {
+                // Check if we're facing a block here and that block is not redstone dust
+                const vec = vec3.create();
+                vec3.add(vec, coords, dirVec);
+                out = out || [null, 0];
+                Grid.getN(grid, vec, out);
+                if (!out[0] || out[0] == blocks.dust) continue;
+
+                // Update up neighbor
+                alsoUpdate = alsoUpdate || [];
+                vec3.add(vec, vec, directions.up);
+                alsoUpdate.push(vec3.clone(vec));
+
+                // Update down neighbor
+                vec3.add(vec, vec, directions.down);
+                vec3.add(vec, vec, directions.down);
+                alsoUpdate.push(vec);
+            }
+        }
+        if (alsoUpdate)
+            simulator.queueBlockUpdate().set(coords, alsoUpdate);
+    },
+    handleNeighborUpdate: (grid: Grid, coords: vec3, oldState: number, simulator: Simulator) => {
         const out: [Block, number] = [null, 0]; // used later for getting blocks
 
         // Check connectedness
@@ -273,6 +357,9 @@ const dust: Block = {
                         continue;
                     
                     // Some blocks (e.g. slabs) prevent power from travelling donwards
+                    // TODO This is important!!!
+                    // If going up to a wire that is on a slab, we need to VISUALLY not show
+                    // the vertical line but still allow power to travel up
                     vec3.add(temp, coords, directions.down);
                     const onBlock = Grid.getBlockN(grid, temp);
                     if (onBlock.preventDownwardsTransmission&&0)
@@ -296,12 +383,17 @@ const dust: Block = {
         }
 
         // If there is a connection, plus/dot bit should be zero, otherwise keep it the same as before
-        const plusDotValue = anyConnection ? 0 : oldState & 0x200;
+        const plusDotValue = anyConnection ? 0 : oldState & 0x1000;
         newState |= plusDotValue << 8;
 
         // Set the new state
-        Grid.set(grid, coords, dust, newState);
-        console.log('NewState', coords, newState.toString(2));
+        if (newState !== oldState) {
+            Grid.set(grid, coords, dust, newState);
+
+            // If the state changed, update neighbors
+            // TODO Also Send Block update when dust is destroyed
+            simulator.queueBlockUpdate().set(temp, TWO_BLOCKS_TAXICAB);
+        }
     }
 }; blockRegistry[blockIdCounter] = dust;
 const slab: Block = {
@@ -309,13 +401,23 @@ const slab: Block = {
     renderer: slabRenderer,
     preventDownwardsTransmission: true,
     isTransparent: true,
+    updateNeighbors: genUpdateNeighbors(ONE_BLOCK_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = slab;
+const torch: Block = {
+    id: ++blockIdCounter,
+    renderer: torchRenderer,
+    isTransparent: true,
+    attractsWires: true,
+    updateNeighbors: genUpdateNeighbors(TWO_BLOCKS_TAXICAB),
+    handleNeighborUpdate: () => {}
+}; blockRegistry[blockIdCounter] = torch;
 
 export const blocks = {
     stone,
     dust,
     slab,
+    torch,
 
     blockRegistry,
     byId: (id: number, allowNull?: boolean): Block => {

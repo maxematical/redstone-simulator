@@ -12,5 +12,7 @@ const none: ReadonlyVec3 = vec3.fromValues(0, 0, 0);
 const wens: readonly ReadonlyVec3[] = [west, east, north, south];
 const weduns: readonly ReadonlyVec3[] = [west, east, down, up, north, south];
 const wensdu: readonly ReadonlyVec3[] = [west, east, north, south, down, up];
+const xwensdu: readonly ReadonlyVec3[] = [none, west, east, north, south, down, up];
+const x: readonly ReadonlyVec3[] = [none];
 
-export default { west, east, down, up, north, south, none, wens, weduns, wensdu };
+export default { west, east, down, up, north, south, none, wens, weduns, wensdu, xwensdu, x };

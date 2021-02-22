@@ -5,27 +5,57 @@
 // https://technical-minecraft.fandom.com/wiki/0-tick_pulses
 // https://old.reddit.com/r/redstone/comments/82dw6x/update_order_list/
 
-import { vec3 } from 'gl-matrix';
+import { vec3, ReadonlyVec3 } from 'gl-matrix';
 import { Grid } from './grid';
 import { Block, blocks } from './blocks';
+import directions from './directions';
+
+declare type rvec3 = ReadonlyVec3;
 
 interface QTick { // aka "tile tick"
     priority: number;
-    location: vec3;
+    location: rvec3;
     delay: number; // in game ticks
     onCompleted: () => void;
 }
 
-class Simulator {
+export class BlockUpdate {
+    readonly location: vec3;
+    updateOrder: readonly rvec3[];
+    needsSet: boolean;
+    constructor() {
+        this.location = vec3.create();
+        this.updateOrder = null;
+        this.needsSet = true;
+    }
+    set(location: vec3, updateOrder: readonly rvec3[]) {
+        vec3.copy(this.location, location);
+        this.updateOrder = updateOrder;
+        this.needsSet = false;
+    }
+    setPostPlacement(location: vec3) {
+        this.set(location, directions.xwensdu);
+    }
+}
+
+export class Simulator {
     grid: Grid;
     queuedTicks: QTick[];
     nextQueuedTickIndex: number;
     tickCount: number;
+    blockUpdatePool: BlockUpdate[];
+    blockUpdateLength: number;
+    tempVec3: vec3;
+    tempOut: [Block, number];
     constructor(grid: Grid) {
         this.grid = grid;
         this.queuedTicks = [];
         this.nextQueuedTickIndex = 0;
         this.tickCount = 0;
+        this.blockUpdatePool = [];
+        this.blockUpdateLength = 0;
+        this.tempVec3 = vec3.create();
+        this.tempOut = [null, 0];
     }
     doGameTick() {
         // Execute queued ticks.
@@ -56,8 +86,22 @@ class Simulator {
             this._doRedstoneTick();
         }
     }
-    _doRedstoneTick() {
-
+    /**
+     * Call to start the process of queuing a block update. The process of queuing the
+     * block update is as follows:
+     * 1) Call Simulator.queueBlockUpdate() to obtain a BlockUpdate object from the internal pool
+     * 2) Call set() or related methods on the BlockUpdate object to set its parameters
+     * THe block update will now be queued and executed by the simulator.
+     */
+    queueBlockUpdate(): BlockUpdate {
+        let bu = this.blockUpdatePool[this.blockUpdateLength];
+        if (!bu) {
+            bu = new BlockUpdate();
+            this.blockUpdatePool[this.blockUpdateLength] = bu;
+        }
+        this.blockUpdateLength++;
+        bu.needsSet = true;
+        return bu;
     }
     _queueTick(tick: QTick) {
         for (let i = this.nextQueuedTickIndex; i <= this.queuedTicks.length; i++) {
@@ -68,6 +112,29 @@ class Simulator {
             }
         }
     }
-}
+    _doRedstoneTick() {
+        const temp = this.tempVec3;
+        const out = this.tempOut;
+        for (let i = 0; i < this.blockUpdateLength; i++) {
+            // Perform the block update
+            const bu = this.blockUpdatePool[i];
 
-export default Simulator;
+            if (bu.needsSet) {
+                throw new Error('Block update was retrieved from the pool but wasn\'t setup corrctly');
+            }
+
+            // Call handleNeighborUpdate on each adjacent block
+            for (let j = 0; j < bu.updateOrder.length; j++) {
+                vec3.add(temp, bu.location, bu.updateOrder[j]);
+                Grid.getN(this.grid, temp, out);
+                try {
+                    if (out[0])
+                        out[0].handleNeighborUpdate(this.grid, temp, out[1], this);
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }
+        this.blockUpdateLength = 0;
+    }
+}
