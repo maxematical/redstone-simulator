@@ -16,4 +16,7 @@ trackKeys.push('Space');
 // Number keys
 for (let i = 0; i <= 9; i++) trackKeys.push('Digit' + i);
 
+// Shift key
+trackKeys.push('ShiftLeft');
+
 export default trackKeys;

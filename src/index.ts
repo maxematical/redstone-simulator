@@ -122,29 +122,38 @@ window.onload = () => {
         input.update();
 
         vec3.copy(oldHighlightBlock, highlightBlock);
-        if (input.keyDown['KeyA']) {
+
+        const keyA = input.keyDown['KeyA'];
+        const keyD = input.keyDown['KeyD'];
+        const keyS = input.keyDown['KeyS'];
+        const keyW = input.keyDown['KeyW'];
+        const keyQ = input.keyDown['KeyQ'];
+        const keyE = input.keyDown['KeyE'];
+        const keyShift = input.keyPressed['ShiftLeft'];
+
+        if (keyA && !keyShift) {
             highlightBlock[0] -= cos(camYaw);
             highlightBlock[2] -= sin(camYaw);
             camRotationY = -CAM_ROTATE_Y;
         }
-        if (input.keyDown['KeyD']) {
+        if (keyD && !keyShift) {
             highlightBlock[0] += cos(camYaw);
             highlightBlock[2] += sin(camYaw);
             camRotationY = CAM_ROTATE_Y;
         }
-        if (input.keyDown['KeyS']) {
+        if (keyS && !keyShift) {
             highlightBlock[1]--;
             camRotationX = CAM_ROTATE_X_1;
         }
-        if (input.keyDown['KeyW']) {
+        if (keyW && !keyShift) {
             highlightBlock[1]++;
             camRotationX = CAM_ROTATE_X_2;
         }
-        if (input.keyDown['KeyQ']) {
+        if (keyQ && !keyShift) {
             highlightBlock[0] += sin(camYaw);
             highlightBlock[2] -= cos(camYaw);
         }
-        if (input.keyDown['KeyE']) {
+        if (keyE && !keyShift) {
             highlightBlock[0] -= sin(camYaw);
             highlightBlock[2] += cos(camYaw);
         }
@@ -154,11 +163,11 @@ window.onload = () => {
             lgr.fadeLayers = !lgr.fadeLayers;
 
         let rotated = false;
-        if (input.keyDown['ArrowLeft']) {
+        if (input.keyDown['ArrowLeft'] || (keyA && keyShift)) {
             camYaw += 1.57079633;
             rotated = true;
         }
-        if (input.keyDown['ArrowRight']) {
+        if (input.keyDown['ArrowRight'] || (keyD && keyShift)) {
             camYaw -= 1.57079633;
             rotated = true;
         }
