@@ -1,12 +1,16 @@
 declare var gl: WebGL2RenderingContext;
 
+// Adds line numbers to source code
+const annotateSource = (source: string): string =>
+    source.split('\n').reduce((out, line, i) => out + '\n' + ('   ' + (i + 1)).slice(-3) + ' ' + line, '');
+
 export const initShader = (name: string, src: string, type: number): WebGLShader => {
     const shader = gl.createShader(type);
     gl.shaderSource(shader, src);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         console.error(`Error compiling shader ${name}`, gl.getShaderInfoLog(shader));
-        console.error(src);
+        console.error(annotateSource(src));
         alert(`Shader compilation error: ${name}`);
         return null;
     }

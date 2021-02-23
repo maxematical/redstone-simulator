@@ -138,3 +138,5 @@ export class Simulator {
         this.blockUpdateLength = 0;
     }
 }
+
+export const checkHardPowered = (grid: Grid, coords: vec3): number => 0; // TODO

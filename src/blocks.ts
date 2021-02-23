@@ -6,12 +6,14 @@ import { initShader, initProgram } from './shader';
 import { materialRegistry } from './materials';
 import { Simulator, BlockUpdate } from './simulator';
 import directions from './directions';
-import vertSrc from './test_vert.glsl';
-import fragSrc from './test_frag.glsl';
+import defaultVertSrc from './test_vert.glsl';
+import defaultFragSrc from './test_frag.glsl';
+import dustVertSrc from './dust_vert.glsl';
+import dustFragSrc from './dust_frag.glsl';
 
 declare var gl: WebGL2RenderingContext;
 
-const { abs } = Math;
+const { abs, min, max } = Math;
 
 /** Defines a type of block. There is one instance of these per TYPE of block (not per block). */
 export interface Block {
@@ -24,6 +26,13 @@ export interface Block {
      */
     preventDownwardsTransmission?: boolean;
     isTransparent?: boolean;
+    /**
+     * Given the block state, return the block power from 0 to 15.
+     * This method is optional, if it does not exist the block power is assumed to be zero.
+     * Note that blocks can also be "strongly powered", e.g. by a redstone repeater facing into
+     * the block; this method does not check for that condition
+     */
+    getPower?: ((state: number) => number) | null;
     /**
      * Called when this block is placed, destroyed, or updated. The block should call
      * Simulator.queueNeighborUpdate() to update its neighbors. For most blocks, this is not a complex method
@@ -59,8 +68,8 @@ class DefaultMaterialRenderer implements MaterialRenderer {
         this.vbo = gl.createBuffer();
         this.ebo = gl.createBuffer();
 
-        const vert = initShader('test_vert', vertSrc, gl.VERTEX_SHADER);
-        const frag = initShader('test_frag', fragSrc, gl.FRAGMENT_SHADER);
+        const vert = initShader('test_vert', defaultVertSrc, gl.VERTEX_SHADER);
+        const frag = initShader('test_frag', defaultFragSrc, gl.FRAGMENT_SHADER);
         this.program = initProgram(vert, frag);
         this.loc_mvp = gl.getUniformLocation(this.program, 'mvp');
         this.loc_alpha = gl.getUniformLocation(this.program, 'alpha');
@@ -94,6 +103,62 @@ class DefaultMaterialRenderer implements MaterialRenderer {
 }
 materialRegistry.add('default', () => new DefaultMaterialRenderer());
 
+class DustMaterialRenderer implements MaterialRenderer {
+    vao: WebGLVertexArrayObject;
+    vbo: WebGLBuffer;
+    ebo: WebGLBuffer;
+    program: WebGLProgram;
+    loc_mvp: WebGLUniformLocation;
+    loc_alpha: WebGLUniformLocation;
+    nElements: number;
+
+    materialName: 'dust';
+
+    constructor() {
+    }
+
+    init() {
+        this.vao = gl.createVertexArray();
+        this.vbo = gl.createBuffer();
+        this.ebo = gl.createBuffer();
+
+        const vert = initShader('dust_vert', dustVertSrc, gl.VERTEX_SHADER);
+        const frag = initShader('dust_frag', dustFragSrc, gl.FRAGMENT_SHADER);
+        this.program = initProgram(vert, frag);
+        this.loc_mvp = gl.getUniformLocation(this.program, 'mvp');
+        this.loc_alpha = gl.getUniformLocation(this.program, 'alpha');
+
+        gl.bindVertexArray(this.vao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 24, 12);
+        gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 24, 20);
+        gl.enableVertexAttribArray(0);
+        gl.enableVertexAttribArray(1);
+        gl.enableVertexAttribArray(2);
+    }
+
+    uploadCombinedModel(model: GLModel) {
+        gl.bindVertexArray(this.vao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, model.vertexData, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, model.indices, gl.STATIC_DRAW);
+        this.nElements = model.indices.length;
+    }
+
+    renderCombinedModel(info: GLRenderInfo) {
+        const alpha = info.alpha;
+
+        gl.bindVertexArray(this.vao);
+        gl.useProgram(this.program);
+        gl.uniformMatrix4fv(this.loc_mvp, false, info.mvp);
+        gl.uniform1f(this.loc_alpha, alpha);
+        gl.drawElements(gl.TRIANGLES, this.nElements, gl.UNSIGNED_INT, 0);
+    }
+}
+materialRegistry.add('dust', () => new DustMaterialRenderer());
+
 const solidBlockRenderer: BlockRenderer = {
     materialName: 'default',
     nModels: 1,
@@ -120,7 +185,7 @@ const WIRE_TEXTURE_3WAY = 5; // Unrotated is from -X, -Z, and +X
 const WIRE_TEXTURE_DOT = 6;
 
 const redstoneDustRenderer: BlockRenderer = {
-    materialName: 'default',
+    materialName: 'dust',
     nModels: 1,
     render: (grid, coords, block, state, out) => {
         // Figure out which texture to use for the dust
@@ -185,6 +250,7 @@ const redstoneDustRenderer: BlockRenderer = {
         mat4.scale(mat, mat, [0.99, 1 - translateUp, 0.99]);
         
         const extraData = [];
+        // Add UVs to extraData
         for (let i = 0; i < 6; i++) {
             let faceTexture = 64;
             if (i === 5) faceTexture = wireTexture;
@@ -193,10 +259,15 @@ const redstoneDustRenderer: BlockRenderer = {
             else if (i === 3 && verticalWireN) faceTexture = WIRE_TEXTURE_LINE_2;
             else if (i === 4 && verticalWireS) faceTexture = WIRE_TEXTURE_LINE_2;
             const faceRotation = (i === 5) ? wireRotation : 0;
-            useUvs(faceTexture, extraData, i * 8, faceRotation);
+            useUvs(faceTexture, extraData, i * 12, faceRotation, 3);
         }
+        // Add power attribute to extraData
+        const power = state & 0xF;
+        const colorMultiplier = power ? ((power / 15) * 0.7 + 0.3) : 0.1;
+        for (let i = 0; i < 24; i++)
+            extraData[i * 3 + 2] = colorMultiplier;
 
-        const model = Model.use(models.texturedCube, { nPerVertex: 2, data: extraData }, mat, true);
+        const model = Model.use(models.texturedCube, { nPerVertex: 3, data: extraData }, mat, true);
         ModelCombiner.addModel(out, model);
     },
 };
@@ -277,6 +348,7 @@ const dust: Block = {
     renderer: redstoneDustRenderer,
     attractsWires: true,
     isTransparent: true,
+    getPower: (state: number) => state & 0xF,
     updateNeighbors: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
         // Send updates within a 2-block taxicab distance, but also send updates to the blocks
         // above and below any non-wire blocks that the dust is pointing to
@@ -317,8 +389,9 @@ const dust: Block = {
         const out: [Block, number] = [null, 0]; // used later for getting blocks
 
         // Check connectedness
-        let newState = oldState & 0xF;
+        let newState = 0;
         let anyConnection = false;
+        let power = 0;
 
         // Search for possible connections and set bits corresponding to the direction of
         // that neighbor. First search the same level, then the next level
@@ -377,6 +450,13 @@ const dust: Block = {
                 newState |= (1 << bit);
                 anyConnection = true;
 
+                // Check block power
+                // TODO Better powering-- support pinching, slab rule, strong powering
+                let givePower = 0;
+                if (out[0] === blocks.dust) givePower = out[0].getPower(out[1]) - 1;
+                else if (y === 0 && out[0] === blocks.torch) givePower = out[0].getPower(out[1]);
+                power = max(power, givePower);
+
                 // If y is 1, also set the "up-one bit"
                 // But not if the connecting wire is on a slab
                 if (y === 1) {
@@ -392,8 +472,13 @@ const dust: Block = {
         const plusDotValue = anyConnection ? 0 : oldState & 0x1000;
         newState |= plusDotValue << 8;
 
+        // Set state power bits
+        power &= 0xF;
+        newState |= power;
+
         // Set the new state
         if (newState !== oldState) {
+            console.log('Dust state', newState);
             Grid.set(grid, coords, dust, newState);
 
             // If the state changed, update neighbors
@@ -415,6 +500,7 @@ const torch: Block = {
     renderer: torchRenderer,
     isTransparent: true,
     attractsWires: true,
+    getPower: () => 15, // TODO Redstone torch can turn off
     updateNeighbors: genUpdateNeighbors(TWO_BLOCKS_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = torch;

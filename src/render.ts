@@ -235,9 +235,13 @@ export class LayeredGridRenderer {
  * @param outIndex The start index in the array to place UVs into
  * @param rotation Optional, either 0, 90, 180, or 270. Rotates the texture counter-clockwise by
  * the specified amount of degrees.
+ * @param nPerVertex Optional, number of extra floats per vertex when sent to Model.use(). Defaults
+ * to 2, because each vertex usually has a U and V coordinate sent along with it and nothing else.
+ * This should be the same as the nPerVertex parameter sent to Model.use().
  */
-export const useUvs = (textureIndex: number, out: any[], outIndex: number, rotation?: number): void => {
+export const useUvs = (textureIndex: number, out: any[], outIndex: number, rotation?: number, nPerVertex?: number): void => {
     rotation = rotation || 0;
+    nPerVertex = nPerVertex || 2;
     if (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270)
         throw new Error(`Rotation not a valid value: ${rotation}`);
 
@@ -251,25 +255,26 @@ export const useUvs = (textureIndex: number, out: any[], outIndex: number, rotat
     const uB = u0; const vB = v1;
     const uC = u1; const vC = v0;
     const uD = u1; const vD = v1;
+    const n = nPerVertex;
     if (rotation === 0) {
-        out[outIndex+0] = uA; out[outIndex+1] = vA;
-        out[outIndex+2] = uB; out[outIndex+3] = vB;
-        out[outIndex+4] = uC; out[outIndex+5] = vC;
-        out[outIndex+6] = uD; out[outIndex+7] = vD;
+        out[outIndex+n*0+0] = uA; out[outIndex+n*0+1] = vA;
+        out[outIndex+n*1+0] = uB; out[outIndex+n*1+1] = vB;
+        out[outIndex+n*2+0] = uC; out[outIndex+n*2+1] = vC;
+        out[outIndex+n*3+0] = uD; out[outIndex+n*3+1] = vD;
     } else if (rotation === 90) {
-        out[outIndex+0] = uB; out[outIndex+1] = vB;
-        out[outIndex+2] = uD; out[outIndex+3] = vD;
-        out[outIndex+4] = uA; out[outIndex+5] = vA;
-        out[outIndex+6] = uC; out[outIndex+7] = vC;
+        out[outIndex+n*0+0] = uB; out[outIndex+n*0+1] = vB;
+        out[outIndex+n*1+0] = uD; out[outIndex+n*1+1] = vD;
+        out[outIndex+n*2+0] = uA; out[outIndex+n*2+1] = vA;
+        out[outIndex+n*3+0] = uC; out[outIndex+n*3+1] = vC;
     } else if (rotation === 180) {
-        out[outIndex+0] = uD; out[outIndex+1] = vD;
-        out[outIndex+2] = uC; out[outIndex+3] = vC;
-        out[outIndex+4] = uB; out[outIndex+5] = vB;
-        out[outIndex+6] = uA; out[outIndex+7] = vA;
+        out[outIndex+n*0+0] = uD; out[outIndex+n*0+1] = vD;
+        out[outIndex+n*1+0] = uC; out[outIndex+n*1+1] = vC;
+        out[outIndex+n*2+0] = uB; out[outIndex+n*2+1] = vB;
+        out[outIndex+n*3+0] = uA; out[outIndex+n*3+1] = vA;
     } else {
-        out[outIndex+0] = uC; out[outIndex+1] = vC;
-        out[outIndex+2] = uA; out[outIndex+3] = vA;
-        out[outIndex+4] = uD; out[outIndex+5] = vD;
-        out[outIndex+6] = uB; out[outIndex+7] = vB;
+        out[outIndex+n*0+0] = uC; out[outIndex+n*0+1] = vC;
+        out[outIndex+n*1+0] = uA; out[outIndex+n*1+1] = vA;
+        out[outIndex+n*2+0] = uD; out[outIndex+n*2+1] = vD;
+        out[outIndex+n*3+0] = uB; out[outIndex+n*3+1] = vB;
     }
 };
