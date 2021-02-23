@@ -1,3 +1,4 @@
+import './index.css';
 import { GLRenderInfo, LayeredGridRenderer } from './render';
 import vertSrc from './test_vert.glsl';
 import fragSrc from './test_frag.glsl';
@@ -34,7 +35,7 @@ window.onload = () => {
     maximizeCanvas();
     window.addEventListener('resize', maximizeCanvas);
 
-    gl = window.gl = canvas.getContext('webgl2');
+    gl = window['gl'] = canvas.getContext('webgl2');
     if (gl === null) {
         alert('Unable to initialize opengl');
     }

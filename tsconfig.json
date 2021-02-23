@@ -1,5 +1,8 @@
 {
+    "include": ["src/**/*.ts", "test/**/*.ts"],
     "compilerOptions": {
-        "typeRoots": ["./src"]
+        "typeRoots": ["./src"],
+        "outDir": "./dist",
+        "rootDirs": ["src", "test"] // may cause problems later
     }
 }
