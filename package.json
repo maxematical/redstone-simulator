@@ -33,6 +33,6 @@
     "dev": "webpack serve --port 1234 --liveReload",
     "builddev": "webpack build",
     "build": "webpack build --mode=production",
-    "test": "tsc -p test/tsconfig.test.json && mv dist_test/{src,test}/* dist_test/  && ava"
+    "test": "tsc -p test/tsconfig.test.json && mv dist_test/{src,test}/* dist_test/ && ava"
   }
 }

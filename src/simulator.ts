@@ -145,6 +145,7 @@ export class Simulator {
         // Trigger block updates when blocks are placed or destroyed
         this.grid.onSet = (coords: vec3, newBlock: Block | null, newState: number,
                 oldBlock: Block | null, oldState: number) => {
+            this.queueBlockUpdate().set(coords, directions.x);
             if (oldBlock) oldBlock.updateNeighbors(this.grid, coords, oldState, this);
             if (newBlock) newBlock.updateNeighbors(this.grid, coords, newState, this);
         };

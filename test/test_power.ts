@@ -34,6 +34,14 @@ test.beforeEach(t => {
     t.context.sim = new Simulator(t.context.grid);
 });
 
+test('dust is powered by torch', t => {
+    Grid.set(t.context.grid, [0, 0, 0], blocks.torch);
+    t.context.sim.doGameTick();
+    Grid.set(t.context.grid, [1, 0, 0], blocks.dust);
+    t.context.sim.doGameTick();
+
+    t.is(15, Grid.getStateN(t.context.grid, [1, 0, 0]) & 0xF);
+});
 test('dust power fades over distance', t => {
     for (let x = 0; x < 5; x++) Grid.set(t.context.grid, [x, 0, 0], blocks.stone);
     Grid.set(t.context.grid, [0, 1, 0], blocks.torch);
