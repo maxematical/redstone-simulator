@@ -115,12 +115,6 @@ window.onload = () => {
 
     const simulator = new Simulator(grid);
 
-    // Trigger block updates when blocks are placed or destroyed
-    grid.onSet = (coords: vec3, newBlock: Block | null, newState: number, oldBlock: Block | null, oldState: number) => {
-        if (oldBlock) oldBlock.updateNeighbors(grid, coords, oldState, simulator);
-        if (newBlock) newBlock.updateNeighbors(grid, coords, newState, simulator);
-    };
-
     cursor.init();
 
     let totalTime: DOMHighResTimeStamp = 0;

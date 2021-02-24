@@ -47,7 +47,7 @@ export class Simulator {
     blockUpdateLength: number;
     tempVec3: vec3;
     tempOut: [Block, number];
-    constructor(grid: Grid) {
+    constructor(grid: Grid, installHooks?: boolean) {
         this.grid = grid;
         this.queuedTicks = [];
         this.nextQueuedTickIndex = 0;
@@ -56,6 +56,10 @@ export class Simulator {
         this.blockUpdateLength = 0;
         this.tempVec3 = vec3.create();
         this.tempOut = [null, 0];
+
+        if (installHooks === undefined || installHooks) {
+            this._installGridHooks();
+        }
     }
     doGameTick() {
         // Execute queued ticks.
@@ -136,6 +140,14 @@ export class Simulator {
             }
         }
         this.blockUpdateLength = 0;
+    }
+    _installGridHooks() {
+        // Trigger block updates when blocks are placed or destroyed
+        this.grid.onSet = (coords: vec3, newBlock: Block | null, newState: number,
+                oldBlock: Block | null, oldState: number) => {
+            if (oldBlock) oldBlock.updateNeighbors(this.grid, coords, oldState, this);
+            if (newBlock) newBlock.updateNeighbors(this.grid, coords, newState, this);
+        };
     }
 }
 

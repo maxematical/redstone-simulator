@@ -3,11 +3,11 @@ import { Grid } from './grid';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { Block, blocks } from './blocks';
 
-interface GridTestContext {
+interface TestContext {
     grid: Grid;
     c1: vec3;
 }
-const test = anyTest as TestInterface<GridTestContext>;
+const test = anyTest as TestInterface<TestContext>;
 
 test.before(t => {
     glMatrix.setMatrixArrayType(Array);
@@ -40,4 +40,16 @@ test('grid get set', t => {
     Grid.getN(grid, c1, out);
     t.is(out[0], null);
     t.is(out[1], 0);
+});
+test('grid resize', t => {
+    Grid.set(t.context.grid, [0, 0, 0], blocks.stone);
+    Grid.resize(t.context.grid, [-2, -2, -2], [2, 2, 2]);
+
+    t.deepEqual(t.context.grid.size, [5, 5, 5]);
+    t.deepEqual(t.context.grid.min, [-2, -2, -2]);
+    t.deepEqual(t.context.grid.max, [2, 2, 2]);
+
+    const out: [Block, number] = [null, 0];
+    Grid.get(t.context.grid, [0, 0, 0], out);
+    t.is(out[0], blocks.stone);
 });
