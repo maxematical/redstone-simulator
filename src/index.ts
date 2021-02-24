@@ -1,7 +1,5 @@
 import './index.css';
 import { GLRenderInfo, LayeredGridRenderer } from './render';
-import vertSrc from './test_vert.glsl';
-import fragSrc from './test_frag.glsl';
 import { Grid } from './grid';
 import { Model, models } from './models';
 import { vec3, mat4 } from 'gl-matrix';
@@ -11,6 +9,13 @@ import cursor from './cursor';
 import input from './input';
 import imgSrc from './redstone.png';
 import { Simulator, BlockUpdate } from './simulator';
+
+import testVertSrc from './test_vert.glsl';
+import testFragSrc from './test_frag.glsl';
+import dustVertSrc from './dust_vert.glsl';
+import dustFragSrc from './dust_frag.glsl';
+import cursorVertSrc from './cursor_vert.glsl';
+import cursorFragSrc from './cursor_frag.glsl';
 
 var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
@@ -39,6 +44,14 @@ window.onload = () => {
     if (gl === null) {
         alert('Unable to initialize opengl');
     }
+
+    window.testVertSrc = testVertSrc;
+    window.testFragSrc = testFragSrc;
+    window.dustVertSrc = dustVertSrc;
+    window.dustFragSrc = dustFragSrc;
+    window.cursorVertSrc = cursorVertSrc;
+    window.cursorFragSrc = cursorFragSrc;
+
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);

@@ -6,10 +6,6 @@ import { initShader, initProgram } from './shader';
 import { materialRegistry } from './materials';
 import { Simulator, BlockUpdate } from './simulator';
 import directions from './directions';
-import defaultVertSrc from './test_vert.glsl';
-import defaultFragSrc from './test_frag.glsl';
-import dustVertSrc from './dust_vert.glsl';
-import dustFragSrc from './dust_frag.glsl';
 
 declare var gl: WebGL2RenderingContext;
 
@@ -68,8 +64,8 @@ class DefaultMaterialRenderer implements MaterialRenderer {
         this.vbo = gl.createBuffer();
         this.ebo = gl.createBuffer();
 
-        const vert = initShader('test_vert', defaultVertSrc, gl.VERTEX_SHADER);
-        const frag = initShader('test_frag', defaultFragSrc, gl.FRAGMENT_SHADER);
+        const vert = initShader('test_vert', testVertSrc, gl.VERTEX_SHADER);
+        const frag = initShader('test_frag', testFragSrc, gl.FRAGMENT_SHADER);
         this.program = initProgram(vert, frag);
         this.loc_mvp = gl.getUniformLocation(this.program, 'mvp');
         this.loc_alpha = gl.getUniformLocation(this.program, 'alpha');

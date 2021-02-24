@@ -2,10 +2,6 @@ import { GLRenderInfo } from './render';
 import { Model, models } from './models';
 import { mat4, vec3 } from 'gl-matrix';
 import { initShader, initProgram } from './shader';
-import vertSrc from './cursor_vert.glsl';
-import fragSrc from './cursor_frag.glsl';
-
-declare var gl: WebGL2RenderingContext;
 
 const cursor = {
     _vao: null,
@@ -33,8 +29,8 @@ const cursor = {
         cursor._vbo = gl.createBuffer();
         cursor._ebo = gl.createBuffer();
 
-        const vert = initShader('cursor_vert', vertSrc, gl.VERTEX_SHADER);
-        const frag = initShader('cursor_frag', fragSrc, gl.FRAGMENT_SHADER);
+        const vert = initShader('cursor_vert', cursorVertSrc, gl.VERTEX_SHADER);
+        const frag = initShader('cursor_frag', cursorFragSrc, gl.FRAGMENT_SHADER);
         cursor._program = initProgram(vert, frag);
         cursor._loc_mvp = gl.getUniformLocation(cursor._program, 'mvp');
         cursor._loc_cursorPos = gl.getUniformLocation(cursor._program, 'cursorPos');

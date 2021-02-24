@@ -1,4 +1,5 @@
 .cache/
 .vscode/
 dist/
+dist_test/
 node_modules/

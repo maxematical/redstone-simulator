@@ -1,5 +1,10 @@
 export default {
-    files: [ 'src/test/*.ts' ],
-    extensions: [ 'js', 'ts' ],
-    require: [ 'esm' ] // https://stackoverflow.com/a/55803624
+    files: [ 'test/*.ts' ],
+    extensions: [ 'js' ], // .ts added automatically (somehow)
+    require: [ 'esm' ], // https://stackoverflow.com/a/55803624
+    typescript: {
+        rewritePaths: {
+            'test/': 'dist_test/'
+        }
+    }
 };

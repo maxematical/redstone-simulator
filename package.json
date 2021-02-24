@@ -11,6 +11,7 @@
     "html-webpack-plugin": "^5.2.0"
   },
   "devDependencies": {
+    "@ava/typescript": "^1.1.1",
     "ava": "^3.15.0",
     "css-loader": "^5.0.2",
     "esm": "^3.2.25",
@@ -29,8 +30,8 @@
   },
   "scripts": {
     "dev": "webpack serve --port 1234 --liveReload",
-    "aaadev": "parcel src/index.html",
-    "aaabuild": "parcel build src/index.html",
-    "test": "ava"
+    "builddev": "webpack build",
+    "build": "webpack build --mode=production",
+    "test": "tsc -p test/tsconfig.test.json && mv dist_test/{src,test}/* dist_test/  && ava"
   }
 }

@@ -1,16 +1,18 @@
-import test, { ExecutionContext } from 'ava';
+import anyTest, { ExecutionContext, TestInterface } from 'ava';
 import { Grid } from './grid';
-import { vec3 } from 'gl-matrix';
+import { glMatrix, vec3 } from 'gl-matrix';
 import { Block, blocks } from './blocks';
 
 interface GridTestContext {
     grid: Grid;
     c1: vec3;
 }
+const test = anyTest as TestInterface<GridTestContext>;
 
-declare type EC = ExecutionContext<GridTestContext>;
-
-test.beforeEach((t: EC) => {
+test.before(t => {
+    glMatrix.setMatrixArrayType(Array);
+});
+test.beforeEach(t => {
     t.context.grid = Grid.new([3, 3, 3]);
     t.context.c1 = [0, 0, 0];
     Grid.set(t.context.grid, t.context.c1, blocks.stone);
@@ -22,7 +24,7 @@ test('basic grid', t => {
     t.deepEqual([0, 1, 2], grid.max);
     t.deepEqual(true, grid.isDirty);
 });
-test('grid get set', (t: EC) => {
+test('grid get set', t => {
     const { grid, c1 } = t.context;
     const out: [Block, number] = [null, 0];
     Grid.get(grid, c1, out);
