@@ -136,6 +136,19 @@ export const Grid = {
             grid.onSet(xyz, block, state, oldBlock, oldState);
     },
 
+    trySetState: (grid: Grid, xyz: vec3, requireBlock: Block, state: number): boolean => {
+        Grid._boundsCheck(grid, xyz);
+
+        const index = Grid.index(grid, xyz);
+        if (grid.data[index] !== requireBlock.id) return false;
+
+        const oldState = grid.data[index + 1];
+        grid.data[index + 1] = state;
+        grid.isDirty = true;
+        if (grid.onSet)
+            grid.onSet(xyz, requireBlock, state, requireBlock, oldState);
+    },
+
     _boundsCheck: (grid: Grid, xyz: vec3) => {
         if (!Grid.inBounds(grid, xyz)) {
             console.error('Attempted to access out-of-bounds grid coordinate, details:',

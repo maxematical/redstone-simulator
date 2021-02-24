@@ -12,11 +12,28 @@ import directions from './directions';
 
 declare type rvec3 = ReadonlyVec3;
 
-interface QTick { // aka "tile tick"
+const { min, max } = Math;
+
+export class QTick { // aka "tile tick"
+    /** Reset every time its used again from the pool. Always between 1 and 65535 */
+    id: number;
+    location: vec3;
     priority: number;
-    location: rvec3;
     delay: number; // in game ticks
-    onCompleted: () => void;
+    onCompleted: (qt: QTick) => void;
+    isFree: boolean;
+    constructor() {
+        this.location = vec3.create();
+        this.isFree = true;
+    }
+    set(location: vec3, priority: number, delay: number, onCompleted: (qt: QTick) => void): number {
+        vec3.copy(this.location, location);
+        this.priority = priority;
+        this.delay = delay;
+        this.onCompleted = onCompleted;
+        this.isFree = false;
+        return this.id;
+    }
 }
 
 export class BlockUpdate {
@@ -41,7 +58,9 @@ export class BlockUpdate {
 export class Simulator {
     grid: Grid;
     queuedTicks: QTick[];
-    nextQueuedTickIndex: number;
+    /** The index of the first free queuedTick in the queuedTicks array */
+    queuedTickIndex: number;
+    queuedTickLength: number;
     tickCount: number;
     blockUpdatePool: BlockUpdate[];
     blockUpdateLength: number;
@@ -50,7 +69,8 @@ export class Simulator {
     constructor(grid: Grid, installHooks?: boolean) {
         this.grid = grid;
         this.queuedTicks = [];
-        this.nextQueuedTickIndex = 0;
+        this.queuedTickIndex = 0;
+        this.queuedTickLength = 0;
         this.tickCount = 0;
         this.blockUpdatePool = [];
         this.blockUpdateLength = 0;
@@ -71,17 +91,27 @@ export class Simulator {
         // is called, the QTick object is placed in the "next queued tick index" and that index
         // is incremented. Within the redstone tick that queued tick index won't change anywhere else.
         // So the qticks are added after each other in order, thus satisfying the second property.
-        for (let i = 0; i < this.queuedTicks.length; i++) {
+        const len = this.queuedTickLength;
+        this.queuedTickLength = 0;
+        for (let i = 0; i < len; i++) {
             const tick = this.queuedTicks[i];
-            if (!tick) {
-                if (i < this.nextQueuedTickIndex)
-                    this.nextQueuedTickIndex = i;
+
+            // Update free index
+            if (tick.isFree) {
+                this.queuedTickIndex = min(this.queuedTickIndex, i);
                 continue;
             }
+
+            // Count down
             tick.delay--;
+
+            // Execute callback if necessary
+            // Otherwise update length
             if (tick.delay <= 0) {
-                tick.onCompleted();
-                this.queuedTicks[i] = null;
+                tick.onCompleted(tick);
+                tick.isFree = true;
+            } else {
+                this.queuedTickLength = i + 1;
             }
         }
 
@@ -107,14 +137,38 @@ export class Simulator {
         bu.needsSet = true;
         return bu;
     }
-    _queueTick(tick: QTick) {
-        for (let i = this.nextQueuedTickIndex; i <= this.queuedTicks.length; i++) {
-            if (!this.queuedTicks[i]) {
-                this.queuedTicks[i] = tick;
-                this.nextQueuedTickIndex++;
-                return;
+    // QueueTick setup:
+    // 1) Call queueTick() to obtain a QTick object
+    //  -> Finds a free QTick object in the queuedTicks array
+    //  -> Sets QTick.id to the index in the array
+    // 2) Call QTick.set() to set its parameters
+    //  -> Sets QTick.isFree to false
+    //  -> Now the QTick is ready to be iterated over
+    // doGameTick() iterates over QTicks and decrements the timer on free ones.
+    // When the timer runs out the callback is called and QTick.isFree is set back to true
+    queueTick(): QTick {
+        for (let i = this.queuedTickIndex; i <= this.queuedTicks.length; i++) {
+            let qt = this.queuedTicks[i];
+            if (!qt) {
+                qt = new QTick();
+                qt.id = i + 1;
+                if (qt.id > 65535)
+                    throw new Error('Exceeded QTick limit');
+                this.queuedTicks[i] = qt;
+            }
+            if (qt.isFree) {
+                this.queuedTickLength = max(this.queuedTickLength, i + 1);
+                return qt;
             }
         }
+        // QTick should be created by now
+        throw new Error('this shouldn\'t happen');
+    }
+    findQTick(id: number): QTick | null {
+        const index = id - 1;
+        if (index < 1 || index > this.queuedTickLength) return null;
+        const qt = this.queuedTicks[index];
+        return !qt.isFree ? qt : null;
     }
     _doRedstoneTick() {
         const temp = this.tempVec3;
@@ -153,4 +207,59 @@ export class Simulator {
     }
 }
 
-export const checkHardPowered = (grid: Grid, coords: vec3): number => 0; // TODO
+const _isOpaque = (grid: Grid, coords: vec3): boolean => {
+    const block = Grid.getBlockN(grid, coords);
+    return block && !block.isTransparent;
+};
+
+export const getWeakPower = (grid: Grid, coords: vec3): number => {
+    // Check opaque
+    if (!_isOpaque(grid, coords)) return 0;
+
+
+    // Calculate weak power level
+    // A block is weak powered if redstone dust is on top of it or facing into it
+    // Check redstone facing into block
+    let power = 0;
+    const temp = vec3.create();
+    for (let i = 0; i < 4; i++) {
+        const dir = directions.wens[i];
+        vec3.add(temp, coords, dir);
+        const block = Grid.getBlockN(grid, temp);
+        if (block !== blocks.dust) continue;
+        const state = Grid.getStateN(grid, temp);
+        vec3.negate(temp, dir);
+        if (!blocks.dust.isFacing(state, temp)) continue;
+        power = max(power, blocks.dust.getPower(state));
+    }
+    // Check redstone on top of block
+    vec3.add(temp, coords, directions.up);
+    const block = Grid.getBlockN(grid, temp);
+    if (block === blocks.dust) {
+        const state = Grid.getStateN(grid, temp);
+        power = max(power, blocks.dust.getPower(state));
+    }
+
+    return power;
+};
+
+export const getStrongPower = (grid: Grid, coords: vec3): number => {
+    // Check opaque
+    if (!_isOpaque(grid, coords)) return 0;
+
+    // Calculate strong power level
+    let power = 0;
+    
+    // Redstone torch can strong-power blocks from below
+    const below = vec3.create();
+    vec3.add(below, coords, directions.down);
+    const belowBlock = Grid.getBlockN(grid, below);
+    if (belowBlock && belowBlock === blocks.torch) {
+        const torchState = Grid.getStateN(grid, below);
+        power = max(power, blocks.torch.getPower(torchState));
+    }
+
+    // TODO Redstone repeater/comparator
+
+    return power;
+};

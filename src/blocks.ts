@@ -4,7 +4,7 @@ import { GLModel, Model, models } from './models';
 import { BlockRenderer, MaterialRenderer, ModelCombiner, GLRenderInfo, useUvs } from './render';
 import { initShader, initProgram } from './shader';
 import { materialRegistry } from './materials';
-import { Simulator, BlockUpdate } from './simulator';
+import { Simulator, BlockUpdate, QTick, getStrongPower, getWeakPower } from './simulator';
 import directions from './directions';
 
 declare var gl: WebGL2RenderingContext;
@@ -338,8 +338,11 @@ const stone: Block = {
 // the wire is travelling up a block to the west(-X), east(+X), north(-Z), or south(+Z), respectively.
 // The other 4 bits (mask 0xF0) are whether the wire is connected to the west, east, north, south
 // respectively.
+interface BlockDust extends Block {
+    isFacing: (state: number, direction: vec3) => boolean;
+}
 const DUST_Y_ORDER = [0, -1, 1];
-const dust: Block = {
+const dust: BlockDust = {
     id: ++blockIdCounter,
     renderer: redstoneDustRenderer,
     attractsWires: true,
@@ -447,7 +450,8 @@ const dust: Block = {
                 anyConnection = true;
 
                 // Check block power
-                // TODO Better powering-- support pinching, slab rule, strong powering
+                // TODO Better powering-- support pinching, slab rule
+                // Power from adjacent redstone dust
                 let givePower = 0;
                 if (out[0] === blocks.dust) givePower = out[0].getPower(out[1]) - 1;
                 else if (y === 0 && out[0] === blocks.torch) givePower = out[0].getPower(out[1]);
@@ -468,6 +472,13 @@ const dust: Block = {
         const plusDotValue = anyConnection ? 0 : oldState & 0x1000;
         newState |= plusDotValue << 8;
 
+        // Check for strong powering
+        for (let i = 0; i < 6; i++) {
+            const dir = directions.weduns[i];
+            vec3.add(temp, coords, dir);
+            power = max(power, getStrongPower(grid, temp));
+        }
+
         // Set state power bits
         power &= 0xF;
         newState |= power;
@@ -481,6 +492,19 @@ const dust: Block = {
             // TODO Also Send Block update when dust is destroyed
             simulator.queueBlockUpdate().set(temp, TWO_BLOCKS_TAXICAB);
         }
+    },
+
+    // Redstone dust specific properties
+    isFacing: (state: number, direction: vec3) => {
+        const w = !!(state & 0x80);
+        const e = !!(state & 0x40);
+        const n = !!(state & 0x20);
+        const s = !!(state & 0x10);
+        if (w && direction === directions.west) return true;
+        else if (e && direction === directions.east) return true;
+        else if (n && direction === directions.north) return true;
+        else if (s && direction === directions.south) return true;
+        else return !w && !e && !n && !s && !(state & 0x1000); // cross shape
     }
 }; blockRegistry[blockIdCounter] = dust;
 const slab: Block = {
@@ -491,14 +515,51 @@ const slab: Block = {
     updateNeighbors: genUpdateNeighbors(ONE_BLOCK_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = slab;
-const torch: Block = {
+interface BlockTorch extends Block {
+    isPowered: (state: number) => boolean;
+}
+const torch: BlockTorch = {
     id: ++blockIdCounter,
     renderer: torchRenderer,
     isTransparent: true,
     attractsWires: true,
-    getPower: () => 15, // TODO Redstone torch can turn off
+    getPower: (state: number) => torch.isPowered(state) ? 15 : 0,
     updateNeighbors: genUpdateNeighbors(TWO_BLOCKS_TAXICAB),
-    handleNeighborUpdate: () => {}
+    handleNeighborUpdate: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
+        // TODO Allow mounting torches on the sides of blocks
+        const mountedCoords = vec3.create();
+        vec3.add(mountedCoords, coords, directions.down);
+
+        // If the mounted block is powered...
+        //   ...and the torch is currently disabled, we don't need to do anything
+        //   ...and the torch is currently enabled, schedule a qtick to disable it (if necessary)
+        // If the mounted block isn't powered...
+        //   ...and the torch is currently enabled, schedule a qtick to enable it
+        //   ...and the torch is currently disabled,
+
+        // If the mounted block is powered, and the torch is still enabled, schedule a qtick to disable this torch
+        // If it's not powered, and there is a qtick, cancel it; the torch must be powered for a full 2 gticks to be disabled
+        const isPowered = getWeakPower(grid, mountedCoords) > 0 || getStrongPower(grid, mountedCoords) > 0;
+        const isEnabled = torch.isPowered(state);
+        if (isEnabled) {
+            if (isPowered) {
+                const cb = (qt: QTick) => Grid.trySetState(grid, coords, blocks.torch, 0x1000);
+                const qtickIndex = simulator.queueTick().set(coords, 0, 2, cb);
+                const newState = qtickIndex & 0xFFFF;
+                Grid.set(grid, coords, blocks.torch, newState);
+            } else {
+                // Block isn't powered
+                // Cancel the qtick!! (Extend duration)
+                const qtickIndex = state & 0xFFFF;
+                
+            }
+        } else if (!isPowered) {
+
+        }
+    },
+
+    // Redstone torch-specific
+    isPowered: (state: number) => !!(state & 0x10000)
 }; blockRegistry[blockIdCounter] = torch;
 
 export const blocks = {

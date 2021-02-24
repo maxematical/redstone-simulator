@@ -2,7 +2,7 @@ import anyTest, { ExecutionContext, TestInterface } from 'ava';
 import { Grid } from './grid';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { Block, blocks } from './blocks';
-import { Simulator } from './simulator';
+import { Simulator, getWeakPower, getStrongPower } from './simulator';
 
 interface TestContext {
     grid: Grid;
@@ -34,7 +34,7 @@ test.beforeEach(t => {
     t.context.sim = new Simulator(t.context.grid);
 });
 
-test.only('dust is powered by torch', t => {
+test('dust is powered by torch', t => {
     Grid.set(t.context.grid, [0, 0, 0], blocks.torch);
     Grid.set(t.context.grid, [1, 0, 0], blocks.dust);
     t.context.sim.doGameTick();
@@ -52,3 +52,27 @@ test('dust power fades over distance', t => {
     t.is(13, Grid.getStateN(t.context.grid, [3, 1, 0]) & 0xF);
     t.is(12, Grid.getStateN(t.context.grid, [4, 1, 0]) & 0xF);
 });
+test('redstone torch hard powers block', t => {
+    Grid.set(t.context.grid, t.context.c00, blocks.torch);
+    Grid.set(t.context.grid, t.context.u00, blocks.stone);
+    
+    t.is(0, getWeakPower(t.context.grid, t.context.u00), 'redstone torch doesn\'t send weak power');
+    t.is(15, getStrongPower(t.context.grid, t.context.u00), 'redstone torch sends hard power');
+});
+test('redstone dust receives hard power', t => {
+    Grid.set(t.context.grid, t.context.c00, blocks.torch);
+    Grid.set(t.context.grid, t.context.u00, blocks.stone);
+    Grid.set(t.context.grid, t.context.u10, blocks.dust);
+    t.context.sim.doGameTick();
+
+    t.is(0xF, Grid.getStateN(t.context.grid, t.context.u10));
+});
+test('redstone torch can turn off', t => {
+    Grid.set(t.context.grid, [0, 0, 0], blocks.torch);
+    Grid.set(t.context.grid, [0, 1, 0], blocks.stone);
+    Grid.set(t.context.grid, [0, 2, 0], blocks.torch);
+    for (let i = 0; i < 4; i++) t.context.sim.doGameTick();
+    
+    t.is(15, blocks.torch.getPower(Grid.getStateN(t.context.grid, [0, 0, 0])));
+    t.is( 0, blocks.torch.getPower(Grid.getStateN(t.context.grid, [0, 2, 0])));
+})
