@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         // "typeRoots": ["./src"],
-        "rootDirs": ["src", "test"], // may cause problems later
+        // "rootDirs": ["src", "test"], // may cause problems later
         "sourceMap": true
     }
 }

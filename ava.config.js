@@ -7,7 +7,7 @@ export default {
     ],
     typescript: {
         rewritePaths: {
-            'test/': 'dist_test/'
+            'test/': 'dist_test/test/'
         }
     }
 };

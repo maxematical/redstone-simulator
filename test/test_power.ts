@@ -1,8 +1,8 @@
 import anyTest, { ExecutionContext, TestInterface } from 'ava';
-import { Grid } from './grid';
+import { Grid } from '../src/grid';
 import { glMatrix, vec3 } from 'gl-matrix';
-import { Block, blocks } from './blocks';
-import { Simulator, getWeakPower, getStrongPower } from './simulator';
+import { Block, blocks } from '../src/blocks';
+import { Simulator, getWeakPower, getStrongPower } from '../src/simulator';
 
 interface TestContext {
     grid: Grid;
@@ -59,7 +59,9 @@ test('redstone torch hard powers block', t => {
     t.is(0, getWeakPower(t.context.grid, t.context.u00), 'redstone torch doesn\'t send weak power');
     t.is(15, getStrongPower(t.context.grid, t.context.u00), 'redstone torch sends hard power');
 });
+debugger;
 test('redstone dust receives hard power', t => {
+    debugger;
     Grid.set(t.context.grid, t.context.c00, blocks.torch);
     Grid.set(t.context.grid, t.context.u00, blocks.stone);
     Grid.set(t.context.grid, t.context.u10, blocks.dust);
@@ -67,7 +69,16 @@ test('redstone dust receives hard power', t => {
 
     t.is(0xF, Grid.getStateN(t.context.grid, t.context.u10));
 });
-test('redstone torch can turn off', t => {
+test('redstone dust weak powers block', t => {
+    Grid.set(t.context.grid, [0, 0, 0], blocks.stone);
+    Grid.set(t.context.grid, [1, 0, 0], blocks.dust);
+    Grid.set(t.context.grid, [2, 0, 0], blocks.torch);
+    t.context.sim.doGameTick();
+
+    t.is(15, getWeakPower(t.context.grid, [0, 0, 0]));
+    t.is(0, getStrongPower(t.context.grid, [0, 0, 0]));
+});
+test('redstone torch can turn off by other torch', t => {
     Grid.set(t.context.grid, [0, 0, 0], blocks.torch);
     Grid.set(t.context.grid, [0, 1, 0], blocks.stone);
     Grid.set(t.context.grid, [0, 2, 0], blocks.torch);
@@ -75,4 +86,15 @@ test('redstone torch can turn off', t => {
     
     t.is(15, blocks.torch.getPower(Grid.getStateN(t.context.grid, [0, 0, 0])));
     t.is( 0, blocks.torch.getPower(Grid.getStateN(t.context.grid, [0, 2, 0])));
-})
+});
+test('redstone torch can turn off by dust', t => {
+    Grid.set(t.context.grid, [0, 0, 0], blocks.stone);
+    Grid.set(t.context.grid, [0, 1, 0], blocks.torch);
+    Grid.set(t.context.grid, [1, 0, 0], blocks.dust);
+    Grid.set(t.context.grid, [2, 0, 0], blocks.torch);
+    for (let i = 0; i < 4; i++) t.context.sim.doGameTick();
+
+    t.is(true, blocks.torch.isEnabled(Grid.getStateN(t.context.grid, [2, 0, 0])));
+    t.is(0x4F, blocks.dust.getPower(Grid.getStateN(t.context.grid, [1, 0, 0])));
+    t.is(false, blocks.torch.isEnabled(Grid.getStateN(t.context.grid, [0, 1, 0])));
+});

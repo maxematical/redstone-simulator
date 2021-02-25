@@ -1,7 +1,7 @@
 import anyTest, { ExecutionContext, TestInterface } from 'ava';
-import { Grid } from './grid';
+import { Grid } from '../src/grid';
 import { glMatrix, vec3 } from 'gl-matrix';
-import { Block, blocks } from './blocks';
+import { Block, blocks } from '../src/blocks';
 
 interface TestContext {
     grid: Grid;

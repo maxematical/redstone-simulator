@@ -3,6 +3,7 @@
     "include": ["./**/*.ts", "../**/*.d.ts"],
     "compilerOptions": {
         "outDir": "../dist_test",
-        "sourceMap": true
+        "sourceMap": true,
+        "sourceRoot": "../../",
     }
 }

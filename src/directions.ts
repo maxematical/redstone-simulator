@@ -16,4 +16,11 @@ const xwensdu: readonly ReadonlyVec3[] = [none, west, east, north, south, down, 
 const wensu: readonly ReadonlyVec3[] = [west, east, north, south, up];
 const x: readonly ReadonlyVec3[] = [none];
 
-export default { west, east, down, up, north, south, none, wens, weduns, wensdu, xwensdu, wensu, x };
+const checkCardinalVector = (dir: ReadonlyVec3) => {
+    const nComponents = (dir[0] !== 0 ? 1 : 0) + (dir[1] !== 0 ? 1 : 0) + (dir[2] !== 0 ? 1 : 0);
+    if (nComponents !== 1) {
+        throw new Error(`Not a cardinal direction vector: [${dir[0]}, ${dir[1]}, ${dir[2]}]`);
+    }
+};
+
+export default { west, east, down, up, north, south, none, wens, weduns, wensdu, xwensdu, wensu, x, checkCardinalVector };

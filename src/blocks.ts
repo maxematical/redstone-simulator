@@ -497,14 +497,15 @@ const dust: BlockDust = {
 
     // Redstone dust specific properties
     isFacing: (state: number, direction: vec3) => {
+        directions.checkCardinalVector(direction);
         const w = !!(state & 0x80);
         const e = !!(state & 0x40);
         const n = !!(state & 0x20);
         const s = !!(state & 0x10);
-        if (w && direction === directions.west) return true;
-        else if (e && direction === directions.east) return true;
-        else if (n && direction === directions.north) return true;
-        else if (s && direction === directions.south) return true;
+        if      (w && direction[0] < 0) return true;
+        else if (e && direction[0] > 0) return true;
+        else if (n && direction[2] < 0) return true;
+        else if (s && direction[2] > 0) return true;
         else return !w && !e && !n && !s && !(state & 0x1000); // cross shape
     }
 }; blockRegistry[blockIdCounter] = dust;
