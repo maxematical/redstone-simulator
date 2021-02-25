@@ -502,10 +502,19 @@ const dust: BlockDust = {
         const e = !!(state & 0x40);
         const n = !!(state & 0x20);
         const s = !!(state & 0x10);
-        if      (w && direction[0] < 0) return true;
-        else if (e && direction[0] > 0) return true;
-        else if (n && direction[2] < 0) return true;
-        else if (s && direction[2] > 0) return true;
+
+        // Redstone wire can be considered to be facing a block in 3 scenarios:
+        // 1) The dust is attracted/connected to that type of block, e.g. torches, target blocks, other wire.
+        //    This can be tested using the corresponding bit of state
+        // 2) The dust isn't naturally attracted to that block, but it is arranged such that it points in a line,
+        //    and that line is facing towards that block. Specifically, the dust should be connected only in the
+        //    opposite direction.
+        // 3) The dust is not connected to any adjacent blocks and isn't configured to act in a dot, so it
+        //    shapes itself as a cross.
+        if      (direction[0] < 0 && (w || (e && !w && !n && !s))) return true; // connect to west
+        else if (direction[0] > 0 && (e || (w && !e && !n && !s))) return true; // connect to east
+        else if (direction[2] < 0 && (n || (s && !w && !e && !n))) return true; // connect to north
+        else if (direction[2] > 0 && (s || (n && !w && !e && !s))) return true; // connect to south
         else return !w && !e && !n && !s && !(state & 0x1000); // cross shape
     }
 }; blockRegistry[blockIdCounter] = dust;
