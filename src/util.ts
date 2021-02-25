@@ -22,7 +22,8 @@ export class GuillotineArray<T> {
     set(index: number, value: T) {
         if (index >= this._data.length)
             this._resize(index + 1);
-        this._data[this._lastIndexExclusive] = value;
+        const internalIndex = (index + this._startIndex) % this._data.length;
+        this._data[internalIndex] = value;
         this._lastIndexExclusive++;
         this._lastIndexExclusive %= this._data.length;
     }

@@ -49,12 +49,13 @@ class QTickGrid {
         }
         return qt;
     }
-    // TODO Enforce max grid size; x,y,z E [-2^13,2^13)
+    // TODO Enforce max grid size; x,y,z E [-2^9,2^9)
     _hash(coords: vec3): number {
-        const a = location[0] + 8192;
-        const b = location[1] + 8192;
-        const c = location[2] + 8192;
-        return (a << 0) | (b << 14) | (c << 28);
+        // TODO Better hash function that allows bigger coordinates
+        const a = coords[0] + 512;
+        const b = coords[1] + 512;
+        const c = coords[2] + 512;
+        return (a << 0) | (b << 10) | (c << 20);
     }
 }
 

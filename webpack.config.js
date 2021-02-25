@@ -5,6 +5,7 @@ const path = require('path');
 /** @type {import('webpack').Configuration} */ // <-- enables VSCode autocomplete
 module.exports = {
     mode: 'development',
+    devtool: 'source-map',
     entry: __dirname + '/src/index.ts',
     output: {
         path: __dirname + '/dist',
@@ -32,6 +33,7 @@ module.exports = {
     },
     resolve: { extensions: ['.js', '.ts'] },
     devServer: {
-        publicPath: '/'
+        publicPath: '/',
+        writeToDisk: true
     }
 };

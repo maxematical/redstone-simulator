@@ -558,13 +558,13 @@ const torch: BlockTorch = {
                 simulator.tryScheduleQTick(coords, 2, 0, torch._onQTickCompleted, true);
             }
         }
-        console.log('torch updated; current state is', state, 'but may change');
+        console.log(coords, 'torch updated; current state is', state, 'but may change');
     },
 
     // Redstone torch-specific
     isEnabled: (state: number) => ((state & 1) === 0),
     _onQTickCompleted: (qtick: QTick) => {
-        console.log('redstone torch qtick completed! will be enabled = ', qtick.customData);
+        console.log(qtick.location, 'redstone torch qtick completed! will be enabled = ', qtick.customData);
         const willBeEnabled = qtick.customData as boolean;
         const newState = willBeEnabled ? 0 : 1;
         // TODO fix this readonly/not readonly stuff
