@@ -293,8 +293,9 @@ const torchRenderer: BlockRenderer = {
         mat4.translate(mat, mat, coords);
         
         const uvs = [];
+        const sideTexture = blocks.torch.isEnabled(state) ? 8 : 11;
         for (let i = 0; i < 6; i++) {
-            let faceTexture = 8; // Side texture
+            let faceTexture = sideTexture;
             if (i === 0) faceTexture = 9; // Top texture
             else if (i === 5) faceTexture = 10; // Bottom texture
             useUvs(faceTexture, uvs, i*8);
@@ -516,50 +517,59 @@ const slab: Block = {
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = slab;
 interface BlockTorch extends Block {
-    isPowered: (state: number) => boolean;
+    isEnabled: (state: number) => boolean;
+    _onQTickCompleted: (qtick: QTick) => void;
 }
 const torch: BlockTorch = {
     id: ++blockIdCounter,
     renderer: torchRenderer,
     isTransparent: true,
     attractsWires: true,
-    getPower: (state: number) => torch.isPowered(state) ? 15 : 0,
+    getPower: (state: number) => torch.isEnabled(state) ? 15 : 0,
     updateNeighbors: genUpdateNeighbors(TWO_BLOCKS_TAXICAB),
     handleNeighborUpdate: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
         // TODO Allow mounting torches on the sides of blocks
         const mountedCoords = vec3.create();
         vec3.add(mountedCoords, coords, directions.down);
 
-        // If the mounted block is powered...
-        //   ...and the torch is currently disabled, we don't need to do anything
-        //   ...and the torch is currently enabled, schedule a qtick to disable it (if necessary)
-        // If the mounted block isn't powered...
-        //   ...and the torch is currently enabled, schedule a qtick to enable it
-        //   ...and the torch is currently disabled,
-
-        // If the mounted block is powered, and the torch is still enabled, schedule a qtick to disable this torch
-        // If it's not powered, and there is a qtick, cancel it; the torch must be powered for a full 2 gticks to be disabled
+        // If mounted block is powered, torch should be disabled
+        //   torch is enabled  -> schedule qtick to disable it, overwriting enable-qtick if necessary
+        //   torch is disabled -> don't need to do anything
+        // If mounted block is unpowered, torch should be enabled
+        //   torch is enabled  -> don't need to do anything
+        //   torch is disabled -> schedule qtick to enable it
+        // QTick custom data is a boolean, whether the torch should be enabled
         const isPowered = getWeakPower(grid, mountedCoords) > 0 || getStrongPower(grid, mountedCoords) > 0;
-        const isEnabled = torch.isPowered(state);
-        if (isEnabled) {
-            if (isPowered) {
-                const cb = (qt: QTick) => Grid.trySetState(grid, coords, blocks.torch, 0x1000);
-                const qtickIndex = simulator.queueTick().set(coords, 0, 2, cb);
-                const newState = qtickIndex & 0xFFFF;
-                Grid.set(grid, coords, blocks.torch, newState);
-            } else {
-                // Block isn't powered
-                // Cancel the qtick!! (Extend duration)
-                const qtickIndex = state & 0xFFFF;
-                
+        const isEnabled = torch.isEnabled(state);
+        if (isPowered) {
+            // We want the torch to be disabled
+            if (isEnabled) {
+                // clobber existing qtick if it would enable the torch again
+                const existingQTick = simulator.getScheduledQTick(coords);
+                if (existingQTick && !existingQTick.customData[0]) simulator.tryCancelQTick(coords);
+                // Schedule a qtick to disable the torch
+                // If the existing qtick was going to disable it, this won't do anything...
+                simulator.tryScheduleQTick(coords, 2, 0, torch._onQTickCompleted, false);
             }
         } else if (!isPowered) {
-
+            // We want the torch to be enabled
+            if (!isEnabled) {
+                // DON'T clobber existing qticks
+                simulator.tryScheduleQTick(coords, 2, 0, torch._onQTickCompleted, true);
+            }
         }
+        console.log('torch updated; current state is', state, 'but may change');
     },
 
     // Redstone torch-specific
-    isPowered: (state: number) => !!(state & 0x10000)
+    isEnabled: (state: number) => ((state & 1) === 0),
+    _onQTickCompleted: (qtick: QTick) => {
+        console.log('redstone torch qtick completed! will be enabled = ', qtick.customData);
+        const willBeEnabled = qtick.customData as boolean;
+        const newState = willBeEnabled ? 0 : 1;
+        // TODO fix this readonly/not readonly stuff
+        Grid.trySetState(qtick.grid, qtick.location as vec3, blocks.torch, newState);
+    }
 }; blockRegistry[blockIdCounter] = torch;
 
 export const blocks = {

@@ -1,5 +1,5 @@
 import { Block, blocks } from './blocks';
-import { vec3 } from 'gl-matrix';
+import { vec3, ReadonlyVec3 } from 'gl-matrix';
 
 export interface GridSetCallback {
     (coords: vec3, newBlock: Block | null, newState: number, oldBlock: Block | null, oldState: number): void;
@@ -147,6 +147,7 @@ export const Grid = {
         grid.isDirty = true;
         if (grid.onSet)
             grid.onSet(xyz, requireBlock, state, requireBlock, oldState);
+        return true;
     },
 
     _boundsCheck: (grid: Grid, xyz: vec3) => {

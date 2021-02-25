@@ -1,3 +1,4 @@
+import { GuillotineArray } from './util';
 // Reference:
 // https://minecraft.gamepedia.com/Mechanics/Redstone
 // https://minecraft.gamepedia.com/Block_update
@@ -15,24 +16,45 @@ declare type rvec3 = ReadonlyVec3;
 const { min, max } = Math;
 
 export class QTick { // aka "tile tick"
-    /** Reset every time its used again from the pool. Always between 1 and 65535 */
-    id: number;
-    location: vec3;
+    readonly location: rvec3;
     priority: number;
     delay: number; // in game ticks
     onCompleted: (qt: QTick) => void;
+    grid: Grid;
+    customData: any;
     isFree: boolean;
-    constructor() {
-        this.location = vec3.create();
+    constructor(location: vec3) {
+        this.location = vec3.clone(location);
         this.isFree = true;
     }
-    set(location: vec3, priority: number, delay: number, onCompleted: (qt: QTick) => void): number {
-        vec3.copy(this.location, location);
-        this.priority = priority;
-        this.delay = delay;
-        this.onCompleted = onCompleted;
-        this.isFree = false;
-        return this.id;
+}
+
+/**
+ * Provides a way to look up QTicks by grid coordinate
+ */
+class QTickGrid {
+    _data: Map<number, QTick>;
+    constructor() {
+        this._data = new Map();
+    }
+    get(coords: vec3): QTick | undefined {
+        return this._data.get(this._hash(coords));
+    }
+    getOrCreate(coords: vec3): QTick {
+        const key = this._hash(coords);
+        let qt = this._data.get(key);
+        if (!qt) {
+            qt = new QTick(coords);
+            this._data.set(key, qt);
+        }
+        return qt;
+    }
+    // TODO Enforce max grid size; x,y,z E [-2^13,2^13)
+    _hash(coords: vec3): number {
+        const a = location[0] + 8192;
+        const b = location[1] + 8192;
+        const c = location[2] + 8192;
+        return (a << 0) | (b << 14) | (c << 28);
     }
 }
 
@@ -57,10 +79,10 @@ export class BlockUpdate {
 
 export class Simulator {
     grid: Grid;
-    queuedTicks: QTick[];
-    /** The index of the first free queuedTick in the queuedTicks array */
-    queuedTickIndex: number;
-    queuedTickLength: number;
+    // Used for O(1) qtick push/pop and O(n) iteration
+    activeQticks: GuillotineArray<QTick>;
+    // Used for O(1) qtick lookup by vec3
+    qtickGrid: QTickGrid;
     tickCount: number;
     blockUpdatePool: BlockUpdate[];
     blockUpdateLength: number;
@@ -68,9 +90,8 @@ export class Simulator {
     tempOut: [Block, number];
     constructor(grid: Grid, installHooks?: boolean) {
         this.grid = grid;
-        this.queuedTicks = [];
-        this.queuedTickIndex = 0;
-        this.queuedTickLength = 0;
+        this.activeQticks = new GuillotineArray();
+        this.qtickGrid = new QTickGrid();
         this.tickCount = 0;
         this.blockUpdatePool = [];
         this.blockUpdateLength = 0;
@@ -91,27 +112,18 @@ export class Simulator {
         // is called, the QTick object is placed in the "next queued tick index" and that index
         // is incremented. Within the redstone tick that queued tick index won't change anywhere else.
         // So the qticks are added after each other in order, thus satisfying the second property.
-        const len = this.queuedTickLength;
-        this.queuedTickLength = 0;
-        for (let i = 0; i < len; i++) {
-            const tick = this.queuedTicks[i];
-
-            // Update free index
-            if (tick.isFree) {
-                this.queuedTickIndex = min(this.queuedTickIndex, i);
-                continue;
-            }
+        for (let i = 0; i < this.activeQticks.length(); i++) {
+            const tick = this.activeQticks.get(i);
+            if (tick.isFree) continue;
 
             // Count down
             tick.delay--;
 
+            // TODO Respect QTick priority
             // Execute callback if necessary
-            // Otherwise update length
             if (tick.delay <= 0) {
                 tick.onCompleted(tick);
                 tick.isFree = true;
-            } else {
-                this.queuedTickLength = i + 1;
             }
         }
 
@@ -137,7 +149,7 @@ export class Simulator {
         bu.needsSet = true;
         return bu;
     }
-    // QueueTick setup:
+    //(Outdated) QueueTick setup:
     // 1) Call queueTick() to obtain a QTick object
     //  -> Finds a free QTick object in the queuedTicks array
     //  -> Sets QTick.id to the index in the array
@@ -146,30 +158,56 @@ export class Simulator {
     //  -> Now the QTick is ready to be iterated over
     // doGameTick() iterates over QTicks and decrements the timer on free ones.
     // When the timer runs out the callback is called and QTick.isFree is set back to true
-    queueTick(): QTick {
-        for (let i = this.queuedTickIndex; i <= this.queuedTicks.length; i++) {
-            let qt = this.queuedTicks[i];
-            if (!qt) {
-                qt = new QTick();
-                qt.id = i + 1;
-                if (qt.id > 65535)
-                    throw new Error('Exceeded QTick limit');
-                this.queuedTicks[i] = qt;
-            }
-            if (qt.isFree) {
-                this.queuedTickLength = max(this.queuedTickLength, i + 1);
-                return qt;
-            }
+    getScheduledQTick(location: vec3): QTick | null {
+        const qt = this.qtickGrid.get(location);
+        return (qt && !qt.isFree) ? qt : null;
+    }
+    tryScheduleQTick(location: vec3, delay: number, priority: number, onCompleted: (QTick) => void, customData?: any): boolean {
+        const qt = this.qtickGrid.getOrCreate(location);
+
+        if (!qt.isFree) {
+            return false;
         }
-        // QTick should be created by now
-        throw new Error('this shouldn\'t happen');
+        qt.priority = priority;
+        qt.delay = delay;
+        qt.onCompleted = onCompleted;
+        qt.grid = this.grid;
+        qt.customData = customData;
+        qt.isFree = false;
+        this.activeQticks.push(qt);
+
+        return true;
+        // for (let i = this.queuedTickIndex; i <= this.queuedTicks.length; i++) {
+        //     let qt = this.queuedTicks[i];
+        //     if (!qt) {
+        //         qt = new QTick();
+        //         qt.id = i + 1;
+        //         if (qt.id > 65535)
+        //             throw new Error('Exceeded QTick limit');
+        //         this.queuedTicks[i] = qt;
+        //     }
+        //     if (qt.isFree) {
+        //         this.queuedTickLength = max(this.queuedTickLength, i + 1);
+        //         return qt;
+        //     }
+        // }
+        // // QTick should be created by now
+        // throw new Error('this shouldn\'t happen');
     }
-    findQTick(id: number): QTick | null {
-        const index = id - 1;
-        if (index < 1 || index > this.queuedTickLength) return null;
-        const qt = this.queuedTicks[index];
-        return !qt.isFree ? qt : null;
+    tryCancelQTick(location: vec3): boolean {
+        const qt = this.qtickGrid.getOrCreate(location);
+        if (qt.isFree) {
+            return false;
+        }
+        qt.isFree = true;
+        return true;
     }
+    // findQTick(id: number): QTick | null {
+    //     const index = id - 1;
+    //     if (index < 1 || index > this.queuedTickLength) return null;
+    //     const qt = this.queuedTicks[index];
+    //     return !qt.isFree ? qt : null;
+    // }
     _doRedstoneTick() {
         const temp = this.tempVec3;
         const out = this.tempOut;
