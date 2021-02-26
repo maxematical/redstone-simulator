@@ -291,6 +291,24 @@ const torchRenderer: BlockRenderer = {
     render: (grid, coords, block, state, out) => {
         const mat = mat4.create();
         mat4.translate(mat, mat, coords);
+
+        const mountedDir = blocks.torch.getMountedDirection(state);
+        if (mountedDir !== directions.down) {
+            let yRotation;
+            if (mountedDir === directions.west) yRotation = 0;
+            else if (mountedDir === directions.east) yRotation = 180;
+            else if (mountedDir === directions.north) yRotation = 270;
+            else yRotation = 90;
+            const half: vec3 = [0.5, 0.5, 0.5];
+            mat4.translate(mat, mat, half);
+
+            mat4.rotateY(mat, mat, yRotation * 0.0174532925);
+            mat4.translate(mat, mat, [-0.3, 0, 0]);
+            mat4.rotateZ(mat, mat, -0.479965544);
+            mat4.rotateY(mat, mat, yRotation * -0.0174532925);
+            vec3.negate(half, half);
+            mat4.translate(mat, mat, half);
+        }
         
         const uvs = [];
         const isEnabled = blocks.torch.isEnabled(state);
@@ -528,8 +546,22 @@ const slab: Block = {
     updateNeighbors: genUpdateNeighbors(ONE_BLOCK_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = slab;
+
+// Torch state:
+// The torch has two components to its state, whether it is on enabled right now and which
+// side of a block it is mounted on.
+// Counting from LSB to MSB:
+// Whether the torch is enabled (emitting power) is stored in the 4th (mask 0x8) bit.
+// The orientation of the torch is stored in the 3rd least bits (mask 0x7).
+// Depending on the value of (state & 7):
+// 0 -> mounted to west
+// 1 -> mounted to east
+// 2 -> mounted to north
+// 3 -> mounted to south
+// 4 -> mounted on top of block
 interface BlockTorch extends Block {
     isEnabled: (state: number) => boolean;
+    getMountedDirection: (state: number) => ReadonlyVec3;
     _onQTickCompleted: (qtick: QTick) => void;
 }
 const torch: BlockTorch = {
@@ -540,9 +572,9 @@ const torch: BlockTorch = {
     getPower: (state: number) => torch.isEnabled(state) ? 15 : 0,
     updateNeighbors: genUpdateNeighbors(TWO_BLOCKS_TAXICAB),
     handleNeighborUpdate: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
-        // TODO Allow mounting torches on the sides of blocks
         const mountedCoords = vec3.create();
-        vec3.add(mountedCoords, coords, directions.down);
+        const mountedDir = torch.getMountedDirection(state);
+        vec3.add(mountedCoords, coords, mountedDir);
 
         // If mounted block is powered, torch should be disabled
         //   torch is enabled  -> schedule qtick to disable it, overwriting enable-qtick if necessary
@@ -561,24 +593,32 @@ const torch: BlockTorch = {
                 if (existingQTick && !existingQTick.customData[0]) simulator.tryCancelQTick(coords);
                 // Schedule a qtick to disable the torch
                 // If the existing qtick was going to disable it, this won't do anything...
-                simulator.tryScheduleQTick(coords, 2, 0, torch._onQTickCompleted, false);
+                simulator.tryScheduleQTick(coords, 2, 0, torch._onQTickCompleted, [false, state]);
             }
         } else if (!isPowered) {
             // We want the torch to be enabled
             if (!isEnabled) {
                 // DON'T clobber existing qticks
-                simulator.tryScheduleQTick(coords, 2, 0, torch._onQTickCompleted, true);
+                simulator.tryScheduleQTick(coords, 2, 0, torch._onQTickCompleted, [true, state]);
             }
         }
         console.log(coords, 'torch updated; current state is', state, 'but may change');
     },
 
     // Redstone torch-specific
-    isEnabled: (state: number) => ((state & 1) === 0),
+    isEnabled: (state: number) => ((state & 8) === 0),
+    getMountedDirection: (state: number) => {
+        const value = state & 7;
+        if (value === 0) return directions.west;
+        else if (value === 1) return directions.east;
+        else if (value === 2) return directions.north;
+        else if (value === 3) return directions.south;
+        else return directions.down;
+    },
     _onQTickCompleted: (qtick: QTick) => {
         console.log(qtick.location, 'redstone torch qtick completed! will be enabled = ', qtick.customData);
-        const willBeEnabled = qtick.customData as boolean;
-        const newState = willBeEnabled ? 0 : 1;
+        const [willBeEnabled, oldState] = qtick.customData as [boolean, number];
+        const newState = (willBeEnabled ? 0 : 8) | (oldState & 0x7);
         // TODO fix this readonly/not readonly stuff
         Grid.trySetState(qtick.grid, qtick.location as vec3, blocks.torch, newState);
     }

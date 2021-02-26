@@ -1,4 +1,4 @@
-import { GuillotineArray } from './util';
+import { GuillotineArray, LinkedList } from './util';
 // Reference:
 // https://minecraft.gamepedia.com/Mechanics/Redstone
 // https://minecraft.gamepedia.com/Block_update
@@ -80,10 +80,11 @@ export class BlockUpdate {
 
 export class Simulator {
     grid: Grid;
-    // Used for O(1) qtick push/pop and O(n) iteration
-    activeQticks: GuillotineArray<QTick>;
+    // Used for O(1) qtick push/remove and O(n) iteration
+    activeQticks: LinkedList<QTick>;
     // Used for O(1) qtick lookup by vec3
     qtickGrid: QTickGrid;
+    sortedQticks: QTick[];
     tickCount: number;
     blockUpdatePool: BlockUpdate[];
     blockUpdateLength: number;
@@ -91,8 +92,9 @@ export class Simulator {
     tempOut: [Block, number];
     constructor(grid: Grid, installHooks?: boolean) {
         this.grid = grid;
-        this.activeQticks = new GuillotineArray();
+        this.activeQticks = new LinkedList();
         this.qtickGrid = new QTickGrid();
+        this.sortedQticks = [];
         this.tickCount = 0;
         this.blockUpdatePool = [];
         this.blockUpdateLength = 0;
@@ -113,20 +115,30 @@ export class Simulator {
         // is called, the QTick object is placed in the "next queued tick index" and that index
         // is incremented. Within the redstone tick that queued tick index won't change anywhere else.
         // So the qticks are added after each other in order, thus satisfying the second property.
-        for (let i = 0; i < this.activeQticks.length(); i++) {
-            const tick = this.activeQticks.get(i);
-            if (tick.isFree) continue;
+        const iterator = this.activeQticks.iterator();
+        while (iterator.hasNext()) {
+            const tick = iterator.next();
+            // TODO This is firing!?!?!? Not removing from LL properly????
+            // if (tick.isFree) alert('seroius problem');
 
             // Count down
             tick.delay--;
 
-            // TODO Respect QTick priority
             // Execute callback if necessary
             if (tick.delay <= 0) {
-                tick.onCompleted(tick);
-                tick.isFree = true;
+                // console.log('calling remove(); LL=', JSON.stringify(this.activeQticks));
+                iterator.remove();
+                // console.log('post call remove(); LL=', JSON.stringify(this.activeQticks));
+                this.sortedQticks.push(tick);
             }
         }
+        this.sortedQticks.sort((a, b) => a.priority - b.priority);
+        for (let i = 0; i < this.sortedQticks.length; i++) {
+            const tick = this.sortedQticks[i];
+            tick.onCompleted(tick);
+            tick.isFree = true;
+        }
+        this.sortedQticks.splice(0);
 
         // Perform redstone tick
         if (this.tickCount++ % 2 === 0) {

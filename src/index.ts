@@ -117,6 +117,8 @@ window.onload = () => {
 
     cursor.init();
 
+    let redstoneTorchCounter = 0; //TODO Remove this ASAP
+
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
     const renderInfo: GLRenderInfo = { mvp: mvpMat, time: totalTime };
@@ -218,7 +220,12 @@ window.onload = () => {
             const out: [Block, number] = [null, 0];
             Grid.getN(grid, highlightBlock, out);
             const nextBlock: Block = out[0] ? null : blocks.blockRegistry[selectedBlockId];
-            Grid.set(grid, highlightBlock, nextBlock);
+            let state = 0;
+            if (nextBlock===blocks.torch){
+                state=redstoneTorchCounter++;
+                redstoneTorchCounter%=5;
+            }
+            Grid.set(grid, highlightBlock, nextBlock, state);
             changed = true;
 
             // Block update will be automatically sent via grid hook
