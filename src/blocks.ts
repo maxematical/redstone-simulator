@@ -293,11 +293,13 @@ const torchRenderer: BlockRenderer = {
         mat4.translate(mat, mat, coords);
         
         const uvs = [];
-        const sideTexture = blocks.torch.isEnabled(state) ? 8 : 11;
+        const isEnabled = blocks.torch.isEnabled(state);
+        const sideTexture = isEnabled ? 8 : 11;
+        const topTexture = isEnabled ? 9 : 12;
         for (let i = 0; i < 6; i++) {
             let faceTexture = sideTexture;
-            if (i === 0) faceTexture = 9; // Top texture
-            else if (i === 5) faceTexture = 10; // Bottom texture
+            if (i === 0) faceTexture = topTexture;
+            else if (i === 5) faceTexture = 10; // bottom texture
             useUvs(faceTexture, uvs, i*8);
         }
 
