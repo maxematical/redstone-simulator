@@ -1,4 +1,4 @@
-import anyTest, { ExecutionContext, TestInterface } from 'ava';
+import anyTest, { TestInterface } from 'ava';
 import { Grid } from '../src/grid';
 import { glMatrix, vec3 } from 'gl-matrix';
 import { Block, blocks } from '../src/blocks';

@@ -98,7 +98,6 @@ class LinkedListIterator<T> implements Iterator<T> {
     }
 }
 
-// TODO Needs unit testing asap!!
 export class LinkedList<T> {
     _length: number;
     readonly head: LinkedListNode<T>;
@@ -133,7 +132,6 @@ export class LinkedList<T> {
         this.tail.prev.next = newNode;
         this.tail.prev = newNode;
         this._length++;
-        console.log('pushed', value, 'now:', this);
     }
     iterator(): Iterator<T> {
         this.it._setup(this.head);
