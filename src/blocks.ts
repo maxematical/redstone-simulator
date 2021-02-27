@@ -22,6 +22,13 @@ export interface Block {
      */
     preventDownwardsTransmission?: boolean;
     isTransparent?: boolean;
+    solidFaces: readonly ReadonlyVec3[];
+    /**
+     * If this block must be mounted on another block, this should be a list of all possible
+     * directions for it to be mounted from. E.g. for redstone dust, this would be `[directions.down]`.
+     * If the block doesn't need to be attached to another block this can be null.
+     */
+    mountingDirections?: readonly ReadonlyVec3[];
     /**
      * Given the block state, return the block power from 0 to 15.
      * This method is optional, if it does not exist the block power is assumed to be zero.
@@ -345,6 +352,7 @@ const blockRegistry: Block[] = [];
 const stone: Block = {
     id: ++blockIdCounter,
     renderer: solidBlockRenderer,
+    solidFaces: directions.weduns,
     updateNeighbors: genUpdateNeighbors(ONE_BLOCK_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = stone;
@@ -368,6 +376,8 @@ const dust: BlockDust = {
     renderer: redstoneDustRenderer,
     attractsWires: true,
     isTransparent: true,
+    solidFaces: [],
+    mountingDirections: [directions.down],
     getPower: (state: number) => state & 0xF,
     updateNeighbors: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
         // Send updates within a 2-block taxicab distance, but also send updates to the blocks
@@ -470,13 +480,9 @@ const dust: BlockDust = {
                 newState |= (1 << bit);
                 anyConnection = true;
 
-                // Check block power
+                // Check power from adjacent redstone dust
                 // TODO Better powering-- support pinching, slab rule
-                // Power from adjacent redstone dust
-                let givePower = 0;
-                if (out[0] === blocks.dust) givePower = out[0].getPower(out[1]) - 1;
-                else if (y === 0 && out[0] === blocks.torch) givePower = out[0].getPower(out[1]);
-                power = max(power, givePower);
+                if (out[0] === blocks.dust) power = max(power, out[0].getPower(out[1]) - 1);
 
                 // If y is 1, also set the "up-one bit"
                 // But not if the connecting wire is on a slab
@@ -493,11 +499,15 @@ const dust: BlockDust = {
         const plusDotValue = anyConnection ? 0 : oldState & 0x1000;
         newState |= plusDotValue << 8;
 
-        // Check for strong powering
+        // Check for strong powering or power source
         for (let i = 0; i < 6; i++) {
             const dir = directions.weduns[i];
             vec3.add(temp, coords, dir);
             power = max(power, getStrongPower(grid, temp));
+
+            const block = Grid.getBlockN(grid, temp);
+            if (block && block.getPower && block !== blocks.dust)
+                power = max(power, block.getPower(Grid.getStateN(grid, temp)));
         }
 
         // Set state power bits
@@ -543,6 +553,7 @@ const slab: Block = {
     renderer: slabRenderer,
     preventDownwardsTransmission: true,
     isTransparent: true,
+    solidFaces: [directions.up],
     updateNeighbors: genUpdateNeighbors(ONE_BLOCK_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = slab;
@@ -569,6 +580,8 @@ const torch: BlockTorch = {
     renderer: torchRenderer,
     isTransparent: true,
     attractsWires: true,
+    solidFaces: [],
+    mountingDirections: [...directions.wens, directions.down],
     getPower: (state: number) => torch.isEnabled(state) ? 15 : 0,
     updateNeighbors: genUpdateNeighbors(TWO_BLOCKS_TAXICAB),
     handleNeighborUpdate: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
@@ -609,11 +622,11 @@ const torch: BlockTorch = {
     isEnabled: (state: number) => ((state & 8) === 0),
     getMountedDirection: (state: number) => {
         const value = state & 7;
-        if (value === 0) return directions.west;
-        else if (value === 1) return directions.east;
-        else if (value === 2) return directions.north;
-        else if (value === 3) return directions.south;
-        else return directions.down;
+        if (value === 0) return directions.down;
+        else if (value === 1) return directions.west;
+        else if (value === 2) return directions.east;
+        else if (value === 3) return directions.north;
+        else return directions.south;
     },
     _onQTickCompleted: (qtick: QTick) => {
         console.log(qtick.location, 'redstone torch qtick completed! will be enabled = ', qtick.customData);

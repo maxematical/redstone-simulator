@@ -75,12 +75,24 @@ window.onload = () => {
     const cameraMat = mat4.create();
     const mvpMat = new Float32Array(16);
     
-    const grid = Grid.new([3, 3, 3]);
-    Grid.set(grid, [0, 0, 0], blocks.stone);
-    Grid.set(grid, [1, 0, 0], blocks.stone);
-    Grid.set(grid, [0, 1, 0], blocks.stone);
+    const grid = Grid.new([4, 3, 3]);
+    const simulator = new Simulator(grid);
 
-    // we are definitely facing -Z
+    // Grid.set(grid, [0, 0, 0], blocks.stone);
+    // Grid.set(grid, [1, 0, 0], blocks.stone);
+    // Grid.set(grid, [0, 1, 0], blocks.stone);
+    Grid.set(grid, [0, 0, 0], blocks.dust);
+    Grid.set(grid, [1, 0, 0], blocks.stone);
+    Grid.set(grid, [2, 0, 0], blocks.torch, 0x1);
+    Grid.set(grid, [3, 0, 0], blocks.dust);
+    Grid.set(grid, [0, 1, 0], blocks.torch, 0x2 | 0x8);
+    Grid.set(grid, [1, 1, 0], blocks.stone);
+    Grid.set(grid, [2, 1, 0], blocks.stone);
+    for (let i = 0; i < 4; i++) simulator.doGameTick();
+    Grid.set(grid, [1, 2, 0], blocks.dust);
+    Grid.set(grid, [2, 2, 0], blocks.dust);
+    for (let i = 0; i < 2; i++) simulator.doGameTick();
+
     const lgr = new LayeredGridRenderer();
     lgr.setCamera([0, 0, -1], vec3.create());
     lgr.updateModels(grid);
@@ -112,8 +124,6 @@ window.onload = () => {
     const VEC3_HALF: vec3 = [0.5, 0.5, 0.5];
 
     let selectedBlockId = 1;
-
-    const simulator = new Simulator(grid);
 
     cursor.init();
 
