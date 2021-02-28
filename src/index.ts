@@ -290,6 +290,7 @@ window.onload = () => {
         }
     };
 
+    let gameTickCountdown: DOMHighResTimeStamp = 0;
     const loop = (timestamp: DOMHighResTimeStamp) => {
         requestAnimationFrame(loop);
 
@@ -299,7 +300,11 @@ window.onload = () => {
 
         processInput(timestamp);
 
-        simulator.doGameTick();
+        gameTickCountdown -= delta;
+        if (gameTickCountdown <= 0) {
+            simulator.doGameTick();
+            gameTickCountdown = 0.05;
+        }
 
         // Do rendering
         // Setup mvp matrices
