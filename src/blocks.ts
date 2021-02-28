@@ -5,7 +5,7 @@ import { BlockRenderer, MaterialRenderer, ModelCombiner, GLRenderInfo, useUvs } 
 import { initShader, initProgram } from './shader';
 import { materialRegistry } from './materials';
 import { Simulator, BlockUpdate, QTick, getStrongPower, getWeakPower } from './simulator';
-import directions from './directions';
+import directions, { DirectionMap } from './directions';
 
 declare var gl: WebGL2RenderingContext;
 
@@ -22,7 +22,7 @@ export interface Block {
      */
     preventDownwardsTransmission?: boolean;
     isTransparent?: boolean;
-    solidFaces: readonly ReadonlyVec3[];
+    solidFaces: DirectionMap;
     /**
      * If this block must be mounted on another block, this should be a list of all possible
      * directions for it to be mounted from. E.g. for redstone dust, this would be `[directions.down]`.
@@ -43,6 +43,13 @@ export interface Block {
      */
     updateNeighbors(grid: Grid, coords: vec3, state: number, simulator: Simulator);
     handleNeighborUpdate(grid: Grid, coords: vec3, state: number, simulator: Simulator);
+    /**
+     * Return the initial state of the block when it is placed.
+     * @param mountingDirection if the block must be mounted on another block, as indicated by
+     * Block.mountingDirections, this is the direction that it was mounted. If it doesn't need to
+     * be mounted this will be null
+     */
+    getPlacedState(mountingDirection: ReadonlyVec3 | null): number;
 }
 
 const genUpdateNeighbors = (range: ReadonlyVec3[]) => (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
@@ -352,7 +359,8 @@ const blockRegistry: Block[] = [];
 const stone: Block = {
     id: ++blockIdCounter,
     renderer: solidBlockRenderer,
-    solidFaces: directions.weduns,
+    solidFaces: new DirectionMap(directions.weduns),
+    getPlacedState: () => 0,
     updateNeighbors: genUpdateNeighbors(ONE_BLOCK_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = stone;
@@ -376,8 +384,9 @@ const dust: BlockDust = {
     renderer: redstoneDustRenderer,
     attractsWires: true,
     isTransparent: true,
-    solidFaces: [],
+    solidFaces: new DirectionMap([]),
     mountingDirections: [directions.down],
+    getPlacedState: () => 0,
     getPower: (state: number) => state & 0xF,
     updateNeighbors: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
         // Send updates within a 2-block taxicab distance, but also send updates to the blocks
@@ -553,7 +562,8 @@ const slab: Block = {
     renderer: slabRenderer,
     preventDownwardsTransmission: true,
     isTransparent: true,
-    solidFaces: [directions.up],
+    solidFaces: new DirectionMap([directions.up]),
+    getPlacedState: () => 0,
     updateNeighbors: genUpdateNeighbors(ONE_BLOCK_TAXICAB),
     handleNeighborUpdate: () => {}
 }; blockRegistry[blockIdCounter] = slab;
@@ -565,11 +575,11 @@ const slab: Block = {
 // Whether the torch is enabled (emitting power) is stored in the 4th (mask 0x8) bit.
 // The orientation of the torch is stored in the 3rd least bits (mask 0x7).
 // Depending on the value of (state & 7):
-// 0 -> mounted to west
-// 1 -> mounted to east
-// 2 -> mounted to north
-// 3 -> mounted to south
-// 4 -> mounted on top of block
+// 0 -> mounted on top of block
+// 1 -> mounted to west
+// 2 -> mounted to east
+// 3 -> mounted to north
+// 4 -> mounted to south
 interface BlockTorch extends Block {
     isEnabled: (state: number) => boolean;
     getMountedDirection: (state: number) => ReadonlyVec3;
@@ -580,9 +590,16 @@ const torch: BlockTorch = {
     renderer: torchRenderer,
     isTransparent: true,
     attractsWires: true,
-    solidFaces: [],
+    solidFaces: new DirectionMap([]),
     mountingDirections: [...directions.wens, directions.down],
     getPower: (state: number) => torch.isEnabled(state) ? 15 : 0,
+    getPlacedState: (mountingDirection: ReadonlyVec3) => {
+        if (directions.equals(directions.down, mountingDirection)) return 0;
+        else if (directions.equals(directions.west, mountingDirection)) return 1;
+        else if (directions.equals(directions.east, mountingDirection)) return 2;
+        else if (directions.equals(directions.north, mountingDirection)) return 3;
+        else return 4;
+    },
     updateNeighbors: genUpdateNeighbors(TWO_BLOCKS_TAXICAB),
     handleNeighborUpdate: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
         const mountedCoords = vec3.create();

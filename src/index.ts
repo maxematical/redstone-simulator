@@ -2,7 +2,7 @@ import './index.css';
 import { GLRenderInfo, LayeredGridRenderer } from './render';
 import { Grid } from './grid';
 import { Model, models } from './models';
-import { vec3, mat4 } from 'gl-matrix';
+import { vec3, mat4, ReadonlyVec3 } from 'gl-matrix';
 import { Block, blocks } from './blocks';
 import directions from './directions';
 import cursor from './cursor';
@@ -97,33 +97,32 @@ window.onload = () => {
     lgr.setCamera([0, 0, -1], vec3.create());
     lgr.updateModels(grid);
 
-    const highlightBlock = vec3.create(); // whole coordinates
     const temp = vec3.create();
     const CAMERA_SHIFT: vec3 = [ 0, 0, 7.5 ];
-    
-    const ANIMATION_LENGTH = 75;
-    const animationStartPos: vec3 = vec3.create();
-    let camRotationXStart = 0.0;
-    let camRotationYStart = 0.0;
-    let animationStartTime: DOMHighResTimeStamp = 0;
-    const highlightBlockAnimated = vec3.create();
-
     const CAM_ROTATE_X_1 = 0.15;
     const CAM_ROTATE_X_2 = 0.15;
     const CAM_ROTATE_Y = -0.025*0;
-    let camRotationX = CAM_ROTATE_X_2;
-    let camRotationY = CAM_ROTATE_Y;
-    let camRotationXAnimated = camRotationX;
-    let camRotationYAnimated = camRotationY;
-    let camYaw = 0.0;
-    let camYawAnimated = 0.0;
-    let camYawAnimateStart = 0.0;
 
-    const oldHighlightBlock = vec3.create();
+    const ANIMATION_LENGTH = 75;
+    let animationStartTime: DOMHighResTimeStamp = 0;
+
+    const highlightBlock = vec3.create(); // whole coordinates
+    const highlightBlockStart: vec3 = vec3.create();
+    const highlightBlockAnimated = vec3.create();
+    let camTiltX = CAM_ROTATE_X_2;
+    let camTiltXStart = 0.0;
+    let camTiltXAnimated = camTiltX;
+    let camTiltY = CAM_ROTATE_Y;
+    let camTiltYStart = 0.0;
+    let camTiltYAnimated = camTiltY;
+    let camYaw = 0.0;
+    let camYawStart = 0.0;
+    let camYawAnimated = 0.0;
 
     const VEC3_HALF: vec3 = [0.5, 0.5, 0.5];
 
-    let selectedBlockId = 1;
+    let selectedBlock = blocks.stone;
+    let selectFaceMode = false;
 
     cursor.init();
 
@@ -132,16 +131,30 @@ window.onload = () => {
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
     const renderInfo: GLRenderInfo = { mvp: mvpMat, time: totalTime };
-    const loop = (timestamp: DOMHighResTimeStamp) => {
-        requestAnimationFrame(loop);
 
-        const delta = lastTimestamp ? (timestamp - lastTimestamp) * 0.001 : 0.01;
-        lastTimestamp = timestamp;
-        totalTime += delta;
+    const placeBlock = (mountingDirection: ReadonlyVec3 | null) => {
+        // Resize the grid to fit the cursor position, if necessary
+        if (!Grid.inBounds(grid, highlightBlock)) {
+            const newMin = vec3.create();
+            const newMax = vec3.create();
+            vec3.min(newMin, grid.min, highlightBlock);
+            vec3.max(newMax, grid.max, highlightBlock);
+            Grid.resize(grid, newMin, newMax);
+        }
 
+        // Place the block
+        Grid.set(grid, highlightBlock, selectedBlock, selectedBlock.getPlacedState(mountingDirection));
+    };
+    const checkValidMountPoint = (dir: ReadonlyVec3) => {
+        vec3.add(temp, highlightBlock, dir);
+        const adjacentBlock = Grid.getBlockN(grid, temp);
+        vec3.negate(temp, dir);
+        return adjacentBlock !== null && adjacentBlock.solidFaces.query(temp);
+    };
+
+    const movementInput = vec3.create();
+    const processInput = (timestamp: DOMHighResTimeStamp) => {
         input.update();
-
-        vec3.copy(oldHighlightBlock, highlightBlock);
 
         const keyA = input.keyDown['KeyA'];
         const keyD = input.keyDown['KeyD'];
@@ -151,33 +164,36 @@ window.onload = () => {
         const keyE = input.keyDown['KeyE'];
         const keyShift = input.keyPressed['ShiftLeft'];
 
+        movementInput[0] = 0;
+        movementInput[1] = 0;
+        movementInput[2] = 0;
         if (keyA && !keyShift) {
-            highlightBlock[0] -= cos(camYaw);
-            highlightBlock[2] -= sin(camYaw);
-            camRotationY = -CAM_ROTATE_Y;
+            movementInput[0] = -cos(camYaw);
+            movementInput[2] = -sin(camYaw);
+            camTiltY = -CAM_ROTATE_Y;
         }
         if (keyD && !keyShift) {
-            highlightBlock[0] += cos(camYaw);
-            highlightBlock[2] += sin(camYaw);
-            camRotationY = CAM_ROTATE_Y;
+            movementInput[0] = cos(camYaw);
+            movementInput[2] = sin(camYaw);
+            camTiltY = CAM_ROTATE_Y;
         }
         if (keyS && !keyShift) {
-            highlightBlock[1]--;
-            camRotationX = CAM_ROTATE_X_1;
+            movementInput[1]--;
+            camTiltX = CAM_ROTATE_X_1;
         }
         if (keyW && !keyShift) {
-            highlightBlock[1]++;
-            camRotationX = CAM_ROTATE_X_2;
+            movementInput[1]++;
+            camTiltX = CAM_ROTATE_X_2;
         }
         if (keyQ && !keyShift) {
-            highlightBlock[0] += sin(camYaw);
-            highlightBlock[2] -= cos(camYaw);
+            movementInput[0] = sin(camYaw);
+            movementInput[2] = -cos(camYaw);
         }
         if (keyE && !keyShift) {
-            highlightBlock[0] -= sin(camYaw);
-            highlightBlock[2] += cos(camYaw);
+            movementInput[0] = -sin(camYaw);
+            movementInput[2] = cos(camYaw);
         }
-        vec3.round(highlightBlock, highlightBlock);
+        vec3.round(movementInput, movementInput);
 
         if (input.keyDown['KeyZ'])
             lgr.fadeLayers = !lgr.fadeLayers;
@@ -191,62 +207,80 @@ window.onload = () => {
             camYaw -= 1.57079633;
             rotated = true;
         }
-        if (rotated)
-            camRotationX = 0;
+        if (rotated) {
+            selectFaceMode = false;
+        }
 
         for (let i = 1; i <= 9; i++) {
             if (input.keyDown['Digit' + i] && blocks.blockRegistry[i]) {
-                selectedBlockId = i;
+                selectedBlock = blocks.blockRegistry[i];
             }
         }
 
-        const moved = !vec3.equals(highlightBlock, oldHighlightBlock);
+        const isPlaceInput = input.keyDown['Space'];
 
+        const hasMovementInput = !vec3.equals(movementInput, directions.none);
+        let moved: boolean = false;
+
+        // Handle input behavior -- this varies depending on the current mode
+        if (!selectFaceMode) {
+            // "default" mode
+            moved = hasMovementInput;
+            vec3.add(highlightBlock, highlightBlock, movementInput);
+            cursor.showAllFaces();
+
+            // Handle place block request
+            if (isPlaceInput) {
+                const currentBlock = Grid.getBlockN(grid, highlightBlock);
+                let md = selectedBlock.mountingDirections;
+                md = md && md.filter(checkValidMountPoint);
+                if (currentBlock !== null || !md || md.length === 1) {
+                    // Can place or remove a block right away
+                    if (currentBlock) Grid.set(grid, highlightBlock, null);
+                    else placeBlock(md ? md[0] : null);
+                } else if (md.length > 1) {
+                    // Need to select a face first
+                    selectFaceMode = true;
+                    for (let i = 0; i < 6; i++) cursor.setShowFace(directions.weduns[i], false);
+                    for (let i = 0; i < md.length; i++) cursor.setShowFace(md[i], true);
+                } // If md.length===0, that means there were no valid mount points and thus can't be placed
+            }
+        } else {
+            // select face mode -- i.e. choosing which block to place a mounted block on
+            if (hasMovementInput) {
+                // Trying to place a block. The mounting direction is movementInput
+                const dir = movementInput;
+                const isValidMountDirection = directions.arrContains(selectedBlock.mountingDirections, dir);
+                const isValidMountPoint = checkValidMountPoint(dir);
+                if (isValidMountDirection && isValidMountPoint) {
+                    placeBlock(dir);
+                    selectFaceMode = false;
+                }
+            }
+
+            if (isPlaceInput)
+                selectFaceMode = false;
+        }
+
+        // Handle camera animations
         if (moved || rotated) {
-            vec3.copy(animationStartPos, highlightBlockAnimated);
-            camRotationXStart = camRotationXAnimated;
-            camRotationYStart = camRotationYAnimated;
-            camYawAnimateStart = camYawAnimated;
+            vec3.copy(highlightBlockStart, highlightBlockAnimated);
+            camTiltXStart = camTiltXAnimated;
+            camTiltYStart = camTiltYAnimated;
+            camYawStart = camYawAnimated;
             animationStartTime = timestamp;
         }
-
-        if (animationStartPos) {
+        // Update camera animations
+        if (highlightBlockStart) {
             const t = min((timestamp - animationStartTime) / ANIMATION_LENGTH, 1);
-            vec3.lerp(highlightBlockAnimated, animationStartPos, highlightBlock, t);
-            camRotationXAnimated = lerp(camRotationXStart, camRotationX, t);
-            camRotationYAnimated = lerp(camRotationYStart, camRotationY, t);
-            camYawAnimated = lerp(camYawAnimateStart, camYaw, t);
+            vec3.lerp(highlightBlockAnimated, highlightBlockStart, highlightBlock, t);
+            camTiltXAnimated = lerp(camTiltXStart, camTiltX, t);
+            camTiltYAnimated = lerp(camTiltYStart, camTiltY, t);
+            camYawAnimated = lerp(camYawStart, camYaw, t);
         }
 
-        let changed = false;
-        if (input.keyDown['Space']) {
-            if (!Grid.inBounds(grid, highlightBlock)) {
-                const newMin = vec3.create();
-                const newMax = vec3.create();
-                vec3.min(newMin, grid.min, highlightBlock);
-                vec3.max(newMax, grid.max, highlightBlock);
-                Grid.resize(grid, newMin, newMax);
-            }
-            const out: [Block, number] = [null, 0];
-            Grid.getN(grid, highlightBlock, out);
-            const nextBlock: Block = out[0] ? null : blocks.blockRegistry[selectedBlockId];
-            let state = 0;
-            if (nextBlock===blocks.torch){
-                state=redstoneTorchCounter++;
-                redstoneTorchCounter%=5;
-            }
-            Grid.set(grid, highlightBlock, nextBlock, state);
-            changed = true;
-
-            // Block update will be automatically sent via grid hook
-
-            // // Send update to adjacent blocks
-            // // https://minecraft.gamepedia.com/Block_update#Sending
-            // // simulator.queueBlockUpdate().setPostPlacement(highlightBlock);
-            // simulator.queueBlockUpdate().set(highlightBlock, directions.x);
-        }
-
-        if (moved || rotated || changed || grid.isDirty) {
+        // Update grid model
+        if (moved || rotated || grid.isDirty) {
             lgr.setCamera([ round(sin(camYaw)), 0, round(-cos(camYaw)) ], highlightBlock);
             lgr.updateModels(grid);
             grid.isDirty = false;
@@ -254,6 +288,16 @@ window.onload = () => {
             // if its only 1 block that changed
             // In the future, track the blocks that changed so we only need to update those models
         }
+    };
+
+    const loop = (timestamp: DOMHighResTimeStamp) => {
+        requestAnimationFrame(loop);
+
+        const delta = lastTimestamp ? (timestamp - lastTimestamp) * 0.001 : 0.01;
+        lastTimestamp = timestamp;
+        totalTime += delta;
+
+        processInput(timestamp);
 
         simulator.doGameTick();
 
@@ -261,8 +305,8 @@ window.onload = () => {
         // Setup mvp matrices
         vec3.negate(temp, CAMERA_SHIFT);
         mat4.fromTranslation(cameraMat, temp);
-        mat4.rotateX(cameraMat, cameraMat, camRotationXAnimated);
-        mat4.rotateY(cameraMat, cameraMat, camYawAnimated + camRotationYAnimated);
+        mat4.rotateX(cameraMat, cameraMat, camTiltXAnimated);
+        mat4.rotateY(cameraMat, cameraMat, camYawAnimated + camTiltYAnimated);
         vec3.negate(temp, highlightBlockAnimated);
         vec3.sub(temp, temp, VEC3_HALF);
         mat4.translate(cameraMat, cameraMat, temp);
@@ -278,7 +322,7 @@ window.onload = () => {
         lgr.render(renderInfo);
 
         // Draw cursor
-        cursor.render(renderInfo, highlightBlock, Grid.getBlockN(grid, highlightBlock) ? 1.0 : 0.35);
+        cursor.render(renderInfo, highlightBlock, Grid.getBlockN(grid, highlightBlock) || selectFaceMode ? 1.0 : 0.35);
     };
     const image = new Image();
     image.src = imgSrc;
