@@ -525,7 +525,6 @@ const dust: BlockDust = {
 
         // Set the new state
         if (newState !== oldState) {
-            console.log('Dust state', newState);
             Grid.set(grid, coords, dust, newState);
 
             // If the state changed, update neighbors
@@ -632,7 +631,6 @@ const torch: BlockTorch = {
                 simulator.tryScheduleQTick(coords, 2, 0, torch._onQTickCompleted, [true, state]);
             }
         }
-        console.log(coords, 'torch updated; current state is', state, 'but may change');
     },
 
     // Redstone torch-specific
@@ -646,7 +644,6 @@ const torch: BlockTorch = {
         else return directions.south;
     },
     _onQTickCompleted: (qtick: QTick) => {
-        console.log(qtick.location, 'redstone torch qtick completed! will be enabled = ', qtick.customData);
         const [willBeEnabled, oldState] = qtick.customData as [boolean, number];
         const newState = (willBeEnabled ? 0 : 8) | (oldState & 0x7);
         // TODO fix this readonly/not readonly stuff

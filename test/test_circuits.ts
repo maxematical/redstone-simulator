@@ -1,8 +1,9 @@
 import { Simulator } from './../src/simulator';
 import { Grid } from './../src/grid';
-import { glMatrix, vec3 } from 'gl-matrix';
+import { glMatrix, vec3, ReadonlyVec3 } from 'gl-matrix';
 import anyTest, { ExecutionContext, TestInterface } from 'ava';
 import { blocks } from '../src/blocks';
+import directions from '../src/directions';
 
 interface TestContext {
     grid: Grid;
@@ -76,4 +77,26 @@ test('rs latch 1', t => {
     t.is(Grid.getStateN(t.context.grid, testA) & 0xF, 15);
     t.is(Grid.getStateN(t.context.grid, testB) & 0xF, 0);
     checkStableCircuit(t, testLocs);
+});
+test('redstone torch pulse generator', t => {
+    Grid.set(t.context.grid, [0, 0, 0], blocks.stone);
+    Grid.set(t.context.grid, [0, 1, 0], blocks.dust);
+    Grid.set(t.context.grid, [1, 0, 0], blocks.torch, blocks.torch.getPlacedState(directions.west));
+    Grid.set(t.context.grid, [1, 1, 0], blocks.stone);
+    const torchPos: vec3 = [1, 0, 0];
+    const dustPos: vec3 = [0, 1, 0];
+    t.is(blocks.dust.getPower(Grid.getStateN(t.context.grid, dustPos)), 0);
+    t.is(blocks.torch.getPower(Grid.getStateN(t.context.grid, torchPos)), 15);
+
+    // From observations, the torch+dust should flicker on and off every 2 gticks
+    // TODO Redstone torches can burn out
+    for (let i = 0; i < 10; i++) {
+        t.context.sim.doGameTick();
+        t.context.sim.doGameTick();
+
+        const expectedPower = (i % 2 === 0) ? 15 : 0;
+        const message = 'tick=' + (i + 1);
+        t.is(blocks.dust.getPower(Grid.getStateN(t.context.grid, dustPos)), expectedPower, message);
+        t.is(blocks.torch.getPower(Grid.getStateN(t.context.grid, torchPos)), expectedPower, message);
+    }
 });

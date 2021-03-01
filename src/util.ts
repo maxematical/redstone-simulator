@@ -133,6 +133,16 @@ export class LinkedList<T> {
         this.tail.prev = newNode;
         this._length++;
     }
+    remove(value: T): boolean {
+        const iterator = this.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next() === value) {
+                iterator.remove();
+                return true;
+            }
+        }
+        return false;
+    }
     iterator(): Iterator<T> {
         this.it._setup(this.head);
         return this.it;

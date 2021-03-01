@@ -118,17 +118,13 @@ export class Simulator {
         const iterator = this.activeQticks.iterator();
         while (iterator.hasNext()) {
             const tick = iterator.next();
-            // TODO This is firing!?!?!? Not removing from LL properly????
-            // if (tick.isFree) alert('seroius problem');
 
             // Count down
             tick.delay--;
 
             // Execute callback if necessary
             if (tick.delay <= 0) {
-                // console.log('calling remove(); LL=', JSON.stringify(this.activeQticks));
                 iterator.remove();
-                // console.log('post call remove(); LL=', JSON.stringify(this.activeQticks));
                 this.sortedQticks.push(tick);
             }
         }
@@ -213,6 +209,7 @@ export class Simulator {
             return false;
         }
         qt.isFree = true;
+        this.activeQticks.remove(qt);
         return true;
     }
     // findQTick(id: number): QTick | null {
