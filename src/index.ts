@@ -1,5 +1,5 @@
 import './index.css';
-import { GLRenderInfo, LayeredGridRenderer } from './render';
+import { GLRenderInfo, LayeredGridRenderer, HotbarRenderer } from './render';
 import { Grid } from './grid';
 import { Model, models } from './models';
 import { vec3, mat4, ReadonlyVec3 } from 'gl-matrix';
@@ -75,7 +75,7 @@ window.onload = () => {
     const cameraMat = mat4.create();
     const mvpMat = new Float32Array(16);
     
-    const grid = Grid.new([4, 3, 3]);
+    const grid = Grid.new([4, 4, 3], [0, -1, 0]);
     const simulator = new Simulator(grid);
 
     // Grid.set(grid, [0, 0, 0], blocks.stone);
@@ -88,6 +88,8 @@ window.onload = () => {
     Grid.set(grid, [0, 1, 0], blocks.torch, 0x2 | 0x8);
     Grid.set(grid, [1, 1, 0], blocks.stone);
     Grid.set(grid, [2, 1, 0], blocks.stone);
+    Grid.set(grid, [0, -1, 0], blocks.stone);
+    Grid.set(grid, [3, -1, 0], blocks.stone);
     for (let i = 0; i < 4; i++) simulator.doGameTick();
     Grid.set(grid, [1, 2, 0], blocks.dust);
     Grid.set(grid, [2, 2, 0], blocks.dust);
@@ -122,6 +124,8 @@ window.onload = () => {
     const VEC3_HALF: vec3 = [0.5, 0.5, 0.5];
 
     let selectedBlock = blocks.stone;
+    let previousSelectedBlock: Block | null = null;
+    let selectedBlockTime = -100.0; // time when the current block was selected
     let selectFaceMode = false;
 
     cursor.init();
@@ -131,6 +135,8 @@ window.onload = () => {
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
     const renderInfo: GLRenderInfo = { mvp: mvpMat, time: totalTime };
+    
+    const hotbarRenderer = new HotbarRenderer(blocks.blockRegistry.slice(1));
 
     const placeBlock = (mountingDirection: ReadonlyVec3 | null) => {
         // Resize the grid to fit the cursor position, if necessary
@@ -212,7 +218,13 @@ window.onload = () => {
         }
 
         for (let i = 1; i <= 9; i++) {
-            if (input.keyDown['Digit' + i] && blocks.blockRegistry[i]) {
+            if (input.keyDown['Digit' + i] && blocks.blockRegistry[i] && selectedBlock !== blocks.blockRegistry[i]) {
+                // Select this block
+                // Record this block as the previous one selected
+                previousSelectedBlock = selectedBlock;
+                // Record the time at which this block was selected
+                selectedBlockTime = totalTime;
+                // Update the currently selected block
                 selectedBlock = blocks.blockRegistry[i];
             }
         }
@@ -232,8 +244,7 @@ window.onload = () => {
             // Handle place block request
             if (isPlaceInput) {
                 const currentBlock = Grid.getBlockN(grid, highlightBlock);
-                let md = selectedBlock.mountingDirections;
-                md = md && md.filter(checkValidMountPoint);
+                let md = selectedBlock.mountingDirections?.filter(checkValidMountPoint);
                 if (currentBlock !== null || !md || md.length === 1) {
                     // Can place or remove a block right away
                     if (currentBlock) Grid.set(grid, highlightBlock, null);
@@ -328,6 +339,11 @@ window.onload = () => {
 
         // Draw cursor
         cursor.render(renderInfo, highlightBlock, Grid.getBlockN(grid, highlightBlock) || selectFaceMode ? 1.0 : 0.35);
+
+        // Draw hotbar
+        hotbarRenderer.render(totalTime, delta,
+            canvas.width, canvas.height,
+            selectedBlock, previousSelectedBlock, selectedBlockTime);
     };
     const image = new Image();
     image.src = imgSrc;

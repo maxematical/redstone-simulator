@@ -1,4 +1,5 @@
-import { vec3 } from 'gl-matrix';
+import { clamp, lerp, normalizeRad as normalizeRadians } from './util';
+import { vec3, mat4 } from 'gl-matrix';
 import { Grid } from './grid';
 import { GLModel } from './models';
 import { Block, blocks } from './blocks';
@@ -59,10 +60,13 @@ export const ModelCombiner = {
 /**
  * A renderer for a certain type of blocks. There will be 1 of these per type of block in the
  * simulator. Its primary purpose is its render function which
- * writes models into the ModelCombiner. These models are probably given extra vertex data by
- * the renderer such as UV coordinates or information for the shader. The same renderer can
- * be used by multiple block types, as long as the number of models added per render invocation
- * remains the same.
+ * writes models into the ModelCombiner. The particular subclass of the renderer may add additional
+ * information to these models, such as UV coordinates or information for the shader.
+ * 
+ * The same BlockRenderer can be used by multiple block types, as long as the number of models added
+ * per render invocation is the same for each type of block.
+ * 
+ * A reference to a BlockRenderer can be obtained through a Block object.
  */
 export interface BlockRenderer {
     nModels: number;
@@ -73,8 +77,11 @@ export interface BlockRenderer {
 }
 
 /**
- * Manages rendering for a material (Shader). There will be one of these instantiated per material,
- * per combined model. Will handle VBOs/EBOs and directly interface with OpenGL.
+ * Manages rendering for a specific material (Shader). There will be one of these instantiated per
+ * material, per combined model. Will handle VBOs/EBOs and directly interface with OpenGL.
+ * 
+ * A material can be used for one or more block types. Blocks will generally use a generally use a
+ * different material when they need a different shader than the default one.
  */
 export interface MaterialRenderer {
     /** The name of the material we are rendering */
@@ -89,7 +96,7 @@ export interface MaterialRenderer {
     uploadCombinedModel(model: GLModel);
 
     /** Called to render the combined model, I.e. the final step in rendering this particular type of block. */
-    renderCombinedModel(info: GLRenderInfo);
+    renderCombinedModel(info: GLRenderInfo, alpha: number);
 }
 
 export class LayerRenderer {
@@ -165,11 +172,11 @@ export class LayerRenderer {
             ModelCombiner.clear(combiner);
         }
     }
-    render(info: GLRenderInfo) {
+    render(info: GLRenderInfo, alpha: number) {
         for (let i = 0; i < this._materialKeys.length; i++) {
             const matName = this._materialKeys[i];
             const [_, renderer] = this._materials[matName];
-            renderer.renderCombinedModel(info);
+            renderer.renderCombinedModel(info, alpha);
         }
     }
 }
@@ -177,10 +184,10 @@ export class LayerRenderer {
 export interface GLRenderInfo {
     mvp: Float32List;
     time: DOMHighResTimeStamp;
-    [key: string]: any; // any additional info needed for rendering
+    //[key: string]: any; // any additional info needed for rendering
 }
 
-const ALPHA_REGRESSION = [0.2, 1.0, 0.3, 0.1];
+const ALPHA_REGRESSION = [0.2, 1.0, 0.3, 0.1]; // alpha value for each visible grid layer
 export class LayeredGridRenderer {
     _layers: LayerRenderer[];
     _facingAxis: vec3;
@@ -212,12 +219,91 @@ export class LayeredGridRenderer {
         this._layers[3].updateModels(grid, this._facingAxis, k - 2, k - 2);
     }
     render(info: GLRenderInfo) {
-        const info2 = { ...info, alpha: 0.0 };
         for (let i = 0; i < 4; i++) {
             let alpha = this.fadeLayers ? ALPHA_REGRESSION[i] : 1.0;
-            info2.alpha = alpha;
-            this._layers[i].render(info2);
+            this._layers[i].render(info, alpha);
         }
+    }
+}
+
+export class HotbarRenderer {
+    _renderers: [Block, MaterialRenderer][]; // One per type of block
+    _rotations: number[];
+    constructor(hotbarBlocks: Block[]) {
+        this._renderers = [];
+        this._rotations = [];
+        const combiner = ModelCombiner.new();
+        const grid = Grid.new([1,1,1]);
+        for (const block of hotbarBlocks) {
+            ModelCombiner.clear(combiner);
+            block.renderer.render(grid, [0,0,0], block, 0, combiner);
+
+            const matRenderer = materialRegistry.createRenderer(block.renderer.materialName);
+            matRenderer.init();
+            matRenderer.uploadCombinedModel(ModelCombiner.combine(combiner));
+            this._renderers.push(tuple(block, matRenderer));
+            this._rotations.push(0);
+        }
+    }
+    render(time: number, deltaTime: number,
+            width: number, height: number,
+            selectedBlock: Block, previousBlock: Block, selectedBlockTime: number) {
+        for (let i = 0; i < this._renderers.length; i++) {
+            const drawSize_px = 50;
+            const drawSpacing_px = 25;
+            const drawMidX_px = width/2 + (i - this._renderers.length/2)*(drawSize_px + drawSpacing_px);
+            const drawMidY_px = 75;
+
+            const mvp: mat4 = new Float32Array(16);
+            const cam = mat4.create();
+            const proj = mat4.create();
+            //mat4.perspective(proj, 0.9, 2.03, 0.1, 100);
+            // mat4.ortho(proj, orthoLeft, orthoRight, orthoBottom, orthoTop, 0.1, 100);
+
+            const selected    = this._renderers[i][0] === selectedBlock;
+            const wasSelected = this._renderers[i][0] === previousBlock;
+
+            const selectTransition =
+                selected ? this._generateTransition(time, selectedBlockTime, 8.0) :
+                    (wasSelected ? 1.0 - this._generateTransition(time, selectedBlockTime, 16.0) : 0.0);
+            const selectTransition2 =
+                selected ? this._generateTransition(time, selectedBlockTime, 4.0) :
+                    (wasSelected ? 1.0 - this._generateTransition(time, selectedBlockTime, 8.0) : 0.0);
+            if (wasSelected&&!selected) console.log(selectTransition);
+
+            mat4.ortho(proj, -1, 1, -1, 1, 0.1, 100.0);
+            mat4.identity(cam);
+            mat4.translate(cam, cam, [0, (0.125+0.05*selectTransition2)*0*Math.cos(2*Math.PI*0.5*time), -5.0]);
+            mat4.rotateX(cam, cam, Math.PI*(0.08 + 0.08*selectTransition));
+            const rotation: number =
+                selected ? (this._rotations[i] += 2*Math.PI*0.15*deltaTime*selectTransition) :
+                lerp(normalizeRadians(this._rotations[i]), 2*Math.PI*-0.05, (time-selectedBlockTime)*8);
+            if (!selected)
+                this._rotations[i] = rotation;
+            mat4.rotateY(cam, cam, rotation);
+            const scaleBlock = 1.2 + 0.5*selectTransition;
+            mat4.scale(cam, cam, [scaleBlock,scaleBlock,scaleBlock]);
+            mat4.translate(cam, cam, [-0.5,-0.5+0.3*selectTransition2,-0.5]);
+            mat4.identity(mvp);
+            // mat4.translate(mvp, mvp, [1.0, 0.0, 0.0]);
+            mat4.mul(mvp, proj, cam);
+
+            const sizeX = drawSize_px/width;
+            const sizeY = drawSize_px/height;
+            const left = (drawMidX_px-0.5*drawSize_px)/width;
+            const bottom = (drawMidY_px-0.5*drawSize_px)/height;
+            const adjust = mat4.create();
+            mat4.identity(adjust);
+            mat4.translate(adjust, adjust, [-1.0 + 2*left, -1.0 + 2*bottom, 0.0]);
+            mat4.scale(adjust, adjust, [sizeX,sizeY,1.0]);
+            mat4.mul(mvp, adjust, mvp);
+
+            const renderInfo: GLRenderInfo = { mvp:mvp, time: 0.0 };
+            this._renderers[i][1].renderCombinedModel(renderInfo, 1.0);
+        }
+    }
+    _generateTransition(time: number, sinceTime: number, speed: number): number {
+        return clamp((time - sinceTime) * speed, 0.0, 1.0);
     }
 }
 

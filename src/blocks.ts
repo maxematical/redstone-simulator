@@ -11,7 +11,7 @@ declare var gl: WebGL2RenderingContext;
 
 const { abs, min, max } = Math;
 
-/** Defines a type of block. There is one instance of these per TYPE of block (not per block). */
+/** Defines a type of block. There is one instance of these per TYPE of block (not per block added to the grid). */
 export interface Block {
     id: number;
     renderer: BlockRenderer;
@@ -101,9 +101,7 @@ class DefaultMaterialRenderer implements MaterialRenderer {
         this.nElements = model.indices.length;
     }
 
-    renderCombinedModel(info: GLRenderInfo) {
-        const alpha = info.alpha;
-
+    renderCombinedModel(info: GLRenderInfo, alpha: number) {
         gl.bindVertexArray(this.vao);
         gl.useProgram(this.program);
         gl.uniformMatrix4fv(this.loc_mvp, false, info.mvp);
@@ -157,9 +155,7 @@ class DustMaterialRenderer implements MaterialRenderer {
         this.nElements = model.indices.length;
     }
 
-    renderCombinedModel(info: GLRenderInfo) {
-        const alpha = info.alpha;
-
+    renderCombinedModel(info: GLRenderInfo, alpha: number) {
         gl.bindVertexArray(this.vao);
         gl.useProgram(this.program);
         gl.uniformMatrix4fv(this.loc_mvp, false, info.mvp);

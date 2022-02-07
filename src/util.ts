@@ -2,6 +2,15 @@ const { min, max } = Math;
 
 export const clamp = (x: number, a: number, b: number): number => max(a, min(b, x));
 
+export const lerp = (a: number, b: number, x: number): number => a + (b - a) * clamp(x, 0.0, 1.0);
+
+/** Normalizes radians to the range [-pi,pi) */
+export const normalizeRad = (rad: number) => {
+    let a = rad % (2*Math.PI);
+    if (a >= Math.PI) a -= 2*Math.PI;
+    return a;
+}
+
 /**
  * Similar to a normal array, but provides O(1) remove-at-head capability.
  */
