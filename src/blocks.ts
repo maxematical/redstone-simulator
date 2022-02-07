@@ -30,6 +30,10 @@ export interface Block {
      */
     mountingDirections?: readonly ReadonlyVec3[];
     /**
+     * The state of the block when shown in the hotbar. If not specified, it will be 0.
+     */
+    hotbarState?: number;
+    /**
      * Given the block state, return the block power from 0 to 15.
      * This method is optional, if it does not exist the block power is assumed to be zero.
      * Note that blocks can also be "strongly powered", e.g. by a redstone repeater facing into
@@ -382,6 +386,7 @@ const dust: BlockDust = {
     isTransparent: true,
     solidFaces: new DirectionMap([]),
     mountingDirections: [directions.down],
+    hotbarState: 0xB,
     getPlacedState: () => 0,
     getPower: (state: number) => state & 0xF,
     updateNeighbors: (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {

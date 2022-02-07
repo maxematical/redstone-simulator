@@ -1,10 +1,14 @@
+import { initProgram, initShader } from './shader';
 import { clamp, lerp, normalizeRad as normalizeRadians } from './util';
 import { vec3, mat4 } from 'gl-matrix';
 import { Grid } from './grid';
-import { GLModel } from './models';
+import { GLModel, Model, models } from './models';
 import { Block, blocks } from './blocks';
 import { materialRegistry } from './materials';
 import tuple from './tuples';
+
+import hotbar_vert from './hotbar_vert.glsl';
+import hotbar_frag from './hotbar_frag.glsl';
 
 declare var gl: WebGL2RenderingContext;
 
@@ -226,17 +230,59 @@ export class LayeredGridRenderer {
     }
 }
 
+class HotbarInterfaceRenderer {
+    _prog: WebGLProgram;
+    _vao: WebGLVertexArrayObject;
+    _loc_screenDimensions: WebGLUniformLocation;
+    _loc_uiPosition: WebGLUniformLocation;
+    _loc_cellParameters: WebGLUniformLocation;
+    constructor() {
+        const vert = initShader('hotbar_vert', hotbar_vert, gl.VERTEX_SHADER);
+        const frag = initShader('hotbar_frag', hotbar_frag, gl.FRAGMENT_SHADER);
+        this._prog = initProgram(vert, frag);
+        this._loc_screenDimensions = gl.getUniformLocation(this._prog, 'screenDimensions');
+        this._loc_uiPosition = gl.getUniformLocation(this._prog, 'uiPosition');
+        this._loc_cellParameters = gl.getUniformLocation(this._prog, 'cellParameters');
+
+        const glModel = Model.use(models.quad);
+
+        this._vao = gl.createVertexArray();
+        const vbo = gl.createBuffer();
+        const ebo = gl.createBuffer();
+        gl.bindVertexArray(this._vao);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, glModel.vertexData, gl.STATIC_DRAW)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, glModel.indices, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
+        gl.enableVertexAttribArray(0);
+    }
+    render(screenWidth: number, screenHeight: number,
+            posX: number, posY: number, width: number, height: number,
+            cellSize: number, cellSpacing: number, padding: number,
+            selectedIndex: number) {
+        gl.bindVertexArray(this._vao);
+        gl.useProgram(this._prog);
+        gl.uniform2f(this._loc_screenDimensions, screenWidth, screenHeight);
+        gl.uniform4f(this._loc_uiPosition, posX, posY, width, height);
+        gl.uniform4f(this._loc_cellParameters, cellSize, cellSpacing, padding, selectedIndex);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
+    }
+}
+
 export class HotbarRenderer {
+    _ui: HotbarInterfaceRenderer;
     _renderers: [Block, MaterialRenderer][]; // One per type of block
     _rotations: number[];
     constructor(hotbarBlocks: Block[]) {
+        this._ui = new HotbarInterfaceRenderer();
         this._renderers = [];
         this._rotations = [];
         const combiner = ModelCombiner.new();
         const grid = Grid.new([1,1,1]);
         for (const block of hotbarBlocks) {
             ModelCombiner.clear(combiner);
-            block.renderer.render(grid, [0,0,0], block, 0, combiner);
+            block.renderer.render(grid, [0,0,0], block, block.hotbarState || 0, combiner);
 
             const matRenderer = materialRegistry.createRenderer(block.renderer.materialName);
             matRenderer.init();
@@ -246,19 +292,33 @@ export class HotbarRenderer {
         }
     }
     render(time: number, deltaTime: number,
-            width: number, height: number,
+            screenWidth: number, screenHeight: number,
             selectedBlock: Block, previousBlock: Block, selectedBlockTime: number) {
-        for (let i = 0; i < this._renderers.length; i++) {
-            const drawSize_px = 50;
-            const drawSpacing_px = 25;
-            const drawMidX_px = width/2 + (i - this._renderers.length/2)*(drawSize_px + drawSpacing_px);
-            const drawMidY_px = 75;
+        const all_size = 50;
+        const all_spacing = 25;
+        const all_yOffset = 55;
+        const all_xIncrement = all_size+all_spacing;
+        const all_startX = screenWidth/2 + (-this._renderers.length/2)*all_xIncrement - all_size/2;
+        const all_startY = all_yOffset + all_size/2;
 
+        const ui_padding = 5;
+
+        let selectedIndex = 0;
+        for (let i = 0; i < this._renderers.length; i++)
+                if (selectedBlock === this._renderers[i][0])
+                    selectedIndex = i;
+
+        gl.disable(gl.DEPTH_TEST);
+        this._ui.render(screenWidth, screenHeight,
+            all_startX-ui_padding, all_startY-ui_padding,
+            all_xIncrement*this._renderers.length + ui_padding*2 - all_spacing, all_size + ui_padding*2,
+            all_size, all_spacing, ui_padding, selectedIndex);
+        gl.enable(gl.DEPTH_TEST);
+
+        for (let i = 0; i < this._renderers.length; i++) {
             const mvp: mat4 = new Float32Array(16);
             const cam = mat4.create();
             const proj = mat4.create();
-            //mat4.perspective(proj, 0.9, 2.03, 0.1, 100);
-            // mat4.ortho(proj, orthoLeft, orthoRight, orthoBottom, orthoTop, 0.1, 100);
 
             const selected    = this._renderers[i][0] === selectedBlock;
             const wasSelected = this._renderers[i][0] === previousBlock;
@@ -271,7 +331,8 @@ export class HotbarRenderer {
                     (wasSelected ? 1.0 - this._generateTransition(time, selectedBlockTime, 8.0) : 0.0);
             if (wasSelected&&!selected) console.log(selectTransition);
 
-            mat4.ortho(proj, -1, 1, -1, 1, 0.1, 100.0);
+            const orthoSize = 1.5;
+            mat4.ortho(proj, -0.5*orthoSize, 0.5*orthoSize, -0.5*orthoSize, 0.5*orthoSize, 0.1, 100.0);
             mat4.identity(cam);
             mat4.translate(cam, cam, [0, (0.125+0.05*selectTransition2)*0*Math.cos(2*Math.PI*0.5*time), -5.0]);
             mat4.rotateX(cam, cam, Math.PI*(0.08 + 0.08*selectTransition));
@@ -281,21 +342,21 @@ export class HotbarRenderer {
             if (!selected)
                 this._rotations[i] = rotation;
             mat4.rotateY(cam, cam, rotation);
-            const scaleBlock = 1.2 + 0.5*selectTransition;
+            const scaleBlock = 1.0 + 0.2*selectTransition;
             mat4.scale(cam, cam, [scaleBlock,scaleBlock,scaleBlock]);
-            mat4.translate(cam, cam, [-0.5,-0.5+0.3*selectTransition2,-0.5]);
+            mat4.translate(cam, cam, [-0.5,-0.5+0.0*selectTransition,-0.5]);
             mat4.identity(mvp);
-            // mat4.translate(mvp, mvp, [1.0, 0.0, 0.0]);
             mat4.mul(mvp, proj, cam);
 
-            const sizeX = drawSize_px/width;
-            const sizeY = drawSize_px/height;
-            const left = (drawMidX_px-0.5*drawSize_px)/width;
-            const bottom = (drawMidY_px-0.5*drawSize_px)/height;
+            const sizeX = all_size/screenWidth;
+            const sizeY = all_size/screenHeight;
+            const left = (all_startX + i*all_xIncrement)/screenWidth;
+            const bottom = (all_startY)/screenHeight;
             const adjust = mat4.create();
             mat4.identity(adjust);
             mat4.translate(adjust, adjust, [-1.0 + 2*left, -1.0 + 2*bottom, 0.0]);
             mat4.scale(adjust, adjust, [sizeX,sizeY,1.0]);
+            mat4.translate(adjust, adjust, [1.0, 1.0, 0.0]);
             mat4.mul(mvp, adjust, mvp);
 
             const renderInfo: GLRenderInfo = { mvp:mvp, time: 0.0 };

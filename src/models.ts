@@ -82,6 +82,20 @@ const triangle: Model = {
         0, 1, 2
     ]
 };
+
+const quad: Model = {
+    vertices: [
+        [0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [1.0, 1.0, 0.0],
+        [1.0, 0.0, 0.0],
+    ],
+    indices: [
+        0, 2, 1,
+        2, 0, 3,
+    ]
+};
+
 const cube: Model = {
     vertices: [
         /*
@@ -171,4 +185,4 @@ for (let i = 0; i < texturedCube.vertices.length / 4; i++) {
 for (let i = 0; i < texturedCube.indices.length; i++)
     torch.indices.push(texturedCube.indices[i]);
 
-export const models = { triangle, cube, texturedCube, torch };
+export const models = { triangle, quad, cube, texturedCube, torch };
