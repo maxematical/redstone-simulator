@@ -296,7 +296,7 @@ export class HotbarRenderer {
             selectedBlock: Block, previousBlock: Block, selectedBlockTime: number) {
         const all_size = 50;
         const all_spacing = 25;
-        const all_yOffset = 55;
+        const all_yOffset = Math.max(4, 0.05*screenHeight);
         const all_xIncrement = all_size+all_spacing;
         const all_startX = screenWidth/2 + (-this._renderers.length/2)*all_xIncrement - all_size/2;
         const all_startY = all_yOffset + all_size/2;

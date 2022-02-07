@@ -25,10 +25,14 @@ const { cos, sin, min, round } = Math;
 
 const lerp = (a: number, b: number, t: number) => a * (1.0 - t) + b * t;
 
+// note: not linked to any event listeners, only updated when maximizeCanvas is called
+let canvasResized: boolean = false;
+
 const maximizeCanvas = () => {
     const body = document.querySelector('body');
     canvas.width = body.offsetWidth;
     canvas.height = body.offsetHeight;
+    canvasResized = true;
 };
 
 window.onload = () => {
@@ -66,12 +70,6 @@ window.onload = () => {
     vec3.normalize(rotationAxis, rotationAxis);
     const modelMat = mat4.create();
     const projMat = mat4.create();
-    mat4.perspective(projMat, 0.9, canvas.width/canvas.height, 0.1, 100);
-    // const orthoZoom = 3;
-    // const aspect = canvas.height / canvas.width;
-    // mat4.ortho(projMat, -orthoZoom, orthoZoom, -orthoZoom * aspect, orthoZoom * aspect, 0.1, 100);
-    // mat4.rotateX(projMat, projMat, 0.1);
-    // mat4.rotateY(projMat, projMat, 0.1);
     const cameraMat = mat4.create();
     const mvpMat = new Float32Array(16);
     
@@ -327,6 +325,11 @@ window.onload = () => {
         vec3.sub(temp, temp, VEC3_HALF);
         mat4.translate(cameraMat, cameraMat, temp);
 
+        if (canvasResized) {
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            mat4.perspective(projMat, 0.9, canvas.width/canvas.height, 0.1, 100);
+        }
+
         mat4.identity(mvpMat);
         mat4.mul(mvpMat, cameraMat, modelMat);
         mat4.mul(mvpMat, projMat, mvpMat);
@@ -344,6 +347,8 @@ window.onload = () => {
         hotbarRenderer.render(totalTime, delta,
             canvas.width, canvas.height,
             selectedBlock, previousSelectedBlock, selectedBlockTime);
+
+        canvasResized = false;
     };
     const image = new Image();
     image.src = imgSrc;
