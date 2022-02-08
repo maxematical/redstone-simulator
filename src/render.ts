@@ -333,7 +333,6 @@ export class HotbarRenderer {
             const selectTransition2 =
                 selected ? this._generateTransition(time, selectedBlockTime, 4.0) :
                     (wasSelected ? 1.0 - this._generateTransition(time, selectedBlockTime, 8.0) : 0.0);
-            if (wasSelected&&!selected) console.log(selectTransition);
 
             const orthoSize = 1.5;
             mat4.ortho(proj, -0.5*orthoSize, 0.5*orthoSize, -0.5*orthoSize, 0.5*orthoSize, 0.1, 100.0);

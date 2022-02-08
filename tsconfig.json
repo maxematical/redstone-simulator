@@ -2,6 +2,7 @@
     "compilerOptions": {
         // "typeRoots": ["./src"],
         // "rootDirs": ["src", "test"], // may cause problems later
-        "sourceMap": true
+        "sourceMap": true,
+        "lib": ["ES2015", "ES6", "DOM"]
     }
 }

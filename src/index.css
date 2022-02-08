@@ -6,6 +6,55 @@ html, body {
     height: 100%;
 }
 
-#canvas {
-    display: block;
+#wrapper {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+#canvas-wrapper {
+    flex-grow: 1;
+
+    /* Prevent canvas size properties from affecting the flexbox */
+    position: relative;
+
+    /* Sometimes canvas will be set 0.5px too big and cause a scrollbar */
+    overflow: hidden;
+}
+
+#canvas-wrapper > canvas {
+    /* Prevent canvas size properties from affecting the flexbox */
+    position: absolute;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Piazzolla:wght@100;200;300;400;500&display=swap');
+
+#info-bar {
+    width: 40.0%;
+    /* padding-left: 23px; */
+    font-family: Recursive Sans Linear;
+    font-weight: 500;
+    font-size: 18px;
+    background-color: hsl(185, 12%, 92%);
+    color: hsl(241, 24%, 7%);
+    text-shadow: 0px 0px 2px white;
+    cursor: default;
+    user-select: none;
+}
+
+#info-bar > div {
+    padding-left: 23px;
+    padding-right: 52px;
+}
+
+#info-bar h1, h2, h3 {
+    font-family: 'Recursive Mono Linear';
+    color: hsl(5, 85%, 40%);
+    text-shadow: 0px 0px 4px hsl(185, 20%, 92%);
+}
+
+#info-bar h2 {
+    font-size: 1.6em;
+    font-weight: 500;
+    letter-spacing: -1px;
 }

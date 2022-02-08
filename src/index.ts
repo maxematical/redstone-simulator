@@ -28,21 +28,22 @@ const lerp = (a: number, b: number, t: number) => a * (1.0 - t) + b * t;
 // note: not linked to any event listeners, only updated when maximizeCanvas is called
 let canvasResized: boolean = false;
 
+let canvasWrapper: HTMLElement;
+
 const maximizeCanvas = () => {
-    const body = document.querySelector('body');
-    canvas.width = body.offsetWidth;
-    canvas.height = body.offsetHeight;
+    canvas.width = canvasWrapper.offsetWidth;
+    canvas.height = canvasWrapper.offsetHeight;
     canvasResized = true;
 };
 
 window.onload = () => {
-    document.getElementById('status-message').innerHTML = '';
-
     input.init();
 
     canvas = document.getElementById('canvas') as HTMLCanvasElement;
+    canvasWrapper = document.querySelector('#canvas-wrapper') as HTMLElement;
     maximizeCanvas();
-    window.addEventListener('resize', maximizeCanvas);
+    // typescript doesn't come with definitions for ResizeObserver?
+    new (window as any).ResizeObserver(maximizeCanvas).observe(canvasWrapper);
 
     gl = window['gl'] = canvas.getContext('webgl2');
     if (gl === null) {
