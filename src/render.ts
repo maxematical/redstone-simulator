@@ -236,6 +236,7 @@ class HotbarInterfaceRenderer {
     _loc_screenDimensions: WebGLUniformLocation;
     _loc_uiPosition: WebGLUniformLocation;
     _loc_cellParameters: WebGLUniformLocation;
+    _loc_selectTime: WebGLUniformLocation;
     constructor() {
         const vert = initShader('hotbar_vert', hotbar_vert, gl.VERTEX_SHADER);
         const frag = initShader('hotbar_frag', hotbar_frag, gl.FRAGMENT_SHADER);
@@ -243,6 +244,7 @@ class HotbarInterfaceRenderer {
         this._loc_screenDimensions = gl.getUniformLocation(this._prog, 'screenDimensions');
         this._loc_uiPosition = gl.getUniformLocation(this._prog, 'uiPosition');
         this._loc_cellParameters = gl.getUniformLocation(this._prog, 'cellParameters');
+        this._loc_selectTime = gl.getUniformLocation(this._prog, 'selectTime');
 
         const glModel = Model.use(models.quad);
 
@@ -260,12 +262,13 @@ class HotbarInterfaceRenderer {
     render(screenWidth: number, screenHeight: number,
             posX: number, posY: number, width: number, height: number,
             cellSize: number, cellSpacing: number, padding: number,
-            selectedIndex: number) {
+            selectedIndex: number, timeSinceSelected: number) {
         gl.bindVertexArray(this._vao);
         gl.useProgram(this._prog);
         gl.uniform2f(this._loc_screenDimensions, screenWidth, screenHeight);
         gl.uniform4f(this._loc_uiPosition, posX, posY, width, height);
         gl.uniform4f(this._loc_cellParameters, cellSize, cellSpacing, padding, selectedIndex);
+        gl.uniform1f(this._loc_selectTime, timeSinceSelected);
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
     }
 }
@@ -312,7 +315,7 @@ export class HotbarRenderer {
         this._ui.render(screenWidth, screenHeight,
             all_startX-ui_padding, all_startY-ui_padding,
             all_xIncrement*this._renderers.length + ui_padding*2 - all_spacing, all_size + ui_padding*2,
-            all_size, all_spacing, ui_padding, selectedIndex);
+            all_size, all_spacing, ui_padding, selectedIndex, time - selectedBlockTime);
         gl.enable(gl.DEPTH_TEST);
 
         for (let i = 0; i < this._renderers.length; i++) {
