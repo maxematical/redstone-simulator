@@ -2,13 +2,14 @@ import './index.css';
 import { GLRenderInfo, LayeredGridRenderer, HotbarRenderer } from './render';
 import { Grid } from './grid';
 import { Model, models } from './models';
-import { vec3, mat4, ReadonlyVec3 } from 'gl-matrix';
+import { vec3, mat4, ReadonlyVec3, vec4 } from 'gl-matrix';
 import { Block, blocks } from './blocks';
 import directions from './directions';
 import cursor from './cursor';
 import input from './input';
 import imgSrc from './redstone.png';
 import { Simulator, BlockUpdate } from './simulator';
+import { adjacentPositions } from './util';
 
 import testVertSrc from './test_vert.glsl';
 import testFragSrc from './test_frag.glsl';
@@ -137,6 +138,24 @@ window.onload = () => {
     
     const hotbarRenderer = new HotbarRenderer(blocks.blockRegistry.slice(1));
 
+    const removeBlock = () => {
+        // Remove highlighted block
+        Grid.set(grid, highlightBlock, null);
+        // Check if there were any blocks mounted to this one that should also be removed
+        for (const delta of adjacentPositions) {
+            vec3.add(temp, highlightBlock, delta);
+            const adjacentBlock = Grid.getBlockN(grid, temp);
+            if (adjacentBlock && adjacentBlock.getMountedDirection) {
+                const mountedDirection = adjacentBlock.getMountedDirection(Grid.getStateN(grid, temp));
+                vec3.negate(temp, mountedDirection);
+                if (vec3.equals(temp, delta)) {
+                    vec3.add(temp, highlightBlock, delta);
+                    Grid.set(grid, temp, null);
+                }
+            }
+        }
+    };
+
     const placeBlock = (mountingDirection: ReadonlyVec3 | null) => {
         // Resize the grid to fit the cursor position, if necessary
         if (!Grid.inBounds(grid, highlightBlock)) {
@@ -246,7 +265,7 @@ window.onload = () => {
                 let md = selectedBlock.mountingDirections?.filter(checkValidMountPoint);
                 if (currentBlock !== null || !md || md.length === 1) {
                     // Can place or remove a block right away
-                    if (currentBlock) Grid.set(grid, highlightBlock, null);
+                    if (currentBlock) removeBlock();
                     else placeBlock(md ? md[0] : null);
                 } else if (md.length > 1) {
                     // Need to select a face first

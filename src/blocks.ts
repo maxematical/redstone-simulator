@@ -54,6 +54,11 @@ export interface Block {
      * be mounted this will be null
      */
     getPlacedState(mountingDirection: ReadonlyVec3 | null): number;
+    /**
+     * Return the direction that this block is mounted from.
+     * @param state the current state of the block
+     */
+    getMountedDirection?(state: number): ReadonlyVec3 | null;
 }
 
 const genUpdateNeighbors = (range: ReadonlyVec3[]) => (grid: Grid, coords: vec3, state: number, simulator: Simulator) => {
@@ -555,7 +560,9 @@ const dust: BlockDust = {
         else if (direction[2] < 0 && (n || (s && !w && !e && !n))) return true; // connect to north
         else if (direction[2] > 0 && (s || (n && !w && !e && !s))) return true; // connect to south
         else return !w && !e && !n && !s && !(state & 0x1000); // cross shape
-    }
+    },
+
+    getMountedDirection: (state: number) => directions.down
 }; blockRegistry[blockIdCounter] = dust;
 const slab: Block = {
     id: ++blockIdCounter,
@@ -633,9 +640,6 @@ const torch: BlockTorch = {
             }
         }
     },
-
-    // Redstone torch-specific
-    isEnabled: (state: number) => ((state & 8) === 0),
     getMountedDirection: (state: number) => {
         const value = state & 7;
         if (value === 0) return directions.down;
@@ -644,6 +648,9 @@ const torch: BlockTorch = {
         else if (value === 3) return directions.north;
         else return directions.south;
     },
+
+    // Redstone torch-specific
+    isEnabled: (state: number) => ((state & 8) === 0),
     _onQTickCompleted: (qtick: QTick) => {
         const [willBeEnabled, oldState] = qtick.customData as [boolean, number];
         const newState = (willBeEnabled ? 0 : 8) | (oldState & 0x7);

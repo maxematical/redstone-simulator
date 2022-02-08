@@ -31,15 +31,24 @@ html, body {
 
 #info-bar {
     width: 40.0%;
+    min-width: 400px;
     /* padding-left: 23px; */
     font-family: Recursive Sans Linear;
     font-weight: 500;
     font-size: 18px;
-    background-color: hsl(185, 12%, 92%);
-    color: hsl(241, 24%, 7%);
-    text-shadow: 0px 0px 2px white;
+    background-color: hsl(165, 2%, 85%);
+    color: hsl(165, 0%, 7%);
+    text-shadow: 0px 0px 2px hsl(157, 20%, 96%);
     cursor: default;
     user-select: none;
+    line-height: 1.25;
+    overflow-y: auto;
+}
+
+@media (max-width: 800px) {
+    #info-bar {
+        font-size: 16px;
+    }
 }
 
 #info-bar > div {
@@ -49,12 +58,26 @@ html, body {
 
 #info-bar h1, h2, h3 {
     font-family: 'Recursive Mono Linear';
-    color: hsl(5, 85%, 40%);
-    text-shadow: 0px 0px 4px hsl(185, 20%, 92%);
+    color: #667;
+    /* color: #dd8; */
+    /* text-shadow: 0px 0px 4px hsl(185, 20%, 97%); */
+}
+
+#info-bar h1 {
+    color: #e32;
 }
 
 #info-bar h2 {
     font-size: 1.6em;
     font-weight: 500;
     letter-spacing: -1px;
+    text-shadow: none;
+}
+
+li {
+    margin-bottom: 0.6em;
+}
+
+li p {
+    margin: 0 0 0.75em 0;
 }

@@ -1,3 +1,4 @@
+import { ReadonlyVec3 } from 'gl-matrix';
 const { min, max } = Math;
 
 export const clamp = (x: number, a: number, b: number): number => max(a, min(b, x));
@@ -164,3 +165,11 @@ export class LinkedList<T> {
             throw new Error(`Index out of bounds: ${i}`);
     }
 }
+
+export const adjacentPositions: ReadonlyVec3[] = [
+    [-1,  0,  0],
+    [ 1,  0,  0],
+    [ 0, -1,  0],
+    [ 0,  1,  0],
+    [ 0,  0, -1],
+    [ 0,  0,  1]];
