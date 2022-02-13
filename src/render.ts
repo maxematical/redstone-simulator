@@ -7,9 +7,6 @@ import { Block, blocks } from './blocks';
 import { materialRegistry } from './materials';
 import tuple from './tuples';
 
-import hotbar_vert from './hotbar_vert.glsl';
-import hotbar_frag from './hotbar_frag.glsl';
-
 declare var gl: WebGL2RenderingContext;
 
 const { abs, min, max, floor } = Math;
@@ -238,8 +235,8 @@ class HotbarInterfaceRenderer {
     _loc_cellParameters: WebGLUniformLocation;
     _loc_selectTime: WebGLUniformLocation;
     constructor() {
-        const vert = initShader('hotbar_vert', hotbar_vert, gl.VERTEX_SHADER);
-        const frag = initShader('hotbar_frag', hotbar_frag, gl.FRAGMENT_SHADER);
+        const vert = initShader('hotbar_vert', hotbarVertSrc, gl.VERTEX_SHADER);
+        const frag = initShader('hotbar_frag', hotbarFragSrc, gl.FRAGMENT_SHADER);
         this._prog = initProgram(vert, frag);
         this._loc_screenDimensions = gl.getUniformLocation(this._prog, 'screenDimensions');
         this._loc_uiPosition = gl.getUniformLocation(this._prog, 'uiPosition');

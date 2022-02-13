@@ -6,3 +6,5 @@ declare var dustVertSrc: string;
 declare var dustFragSrc: string;
 declare var cursorVertSrc: string;
 declare var cursorFragSrc: string;
+declare var hotbarVertSrc: string;
+declare var hotbarFragSrc: string;

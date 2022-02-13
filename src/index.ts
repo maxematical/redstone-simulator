@@ -17,6 +17,8 @@ import dustVertSrc from './dust_vert.glsl';
 import dustFragSrc from './dust_frag.glsl';
 import cursorVertSrc from './cursor_vert.glsl';
 import cursorFragSrc from './cursor_frag.glsl';
+import hotbarVertSrc from './hotbar_vert.glsl';
+import hotbarFragSrc from './hotbar_frag.glsl';
 
 var canvas: HTMLCanvasElement = null;
 var gl: WebGL2RenderingContext = null;
@@ -57,6 +59,8 @@ window.onload = () => {
     window.dustFragSrc = dustFragSrc;
     window.cursorVertSrc = cursorVertSrc;
     window.cursorFragSrc = cursorFragSrc;
+    window.hotbarVertSrc = hotbarVertSrc;
+    window.hotbarFragSrc = hotbarFragSrc;
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.CULL_FACE);
