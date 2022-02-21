@@ -33,7 +33,6 @@ html, body {
 #info-bar {
     width: 40.0%;
     min-width: 400px;
-    /* padding-left: 23px; */
     font-family: Recursive Sans Linear;
     font-weight: 500;
     font-size: 18px;
@@ -92,6 +91,23 @@ html, body {
     color: #3294a6;
 }
 
+#javascript-warning {
+    display: none; /* only display if JavaScript isn't working for some reason */
+    background-color: #ebcc34;
+    padding: 1em 10px 0.5em 10px;
+    margin: 1em 10px 0px 10px;
+    font-size: 95%;
+    text-align: center !important;
+    text-shadow: none;
+}
+
+.javascript-warning-heading {
+    margin-top: 0 !important;
+    color: #334;
+    font-family: 'Recursive Sans Linear';
+    font-weight: 700;
+}
+
 li {
     margin-bottom: 0.6em;
 }
@@ -144,3 +160,31 @@ li p {
     animation: highlight 0.95s ease; */
     animation: highlight 3.60s ease;
 }
+
+
+/* ========================= */
+/* NOSCRIPT/NOWEBGL HANDLING */
+/* ========================= */
+
+body.js-fail {
+    background-color: hsl(165, 2%, 85%);
+}
+
+body.js-fail #javascript-warning {
+    display: block;
+}
+
+body.js-fail #canvas-wrapper {
+    flex-grow: 0;
+}
+
+body.js-fail #info-bar {
+    width: 50%;
+    margin: auto;
+}
+
+.if-js-noscript { display: none; }
+body.js-noscript .if-js-noscript { display: block; }
+
+.if-js-nowebgl { display: none; }
+body.js-nowebgl .if-js-nowebgl { display: block; }

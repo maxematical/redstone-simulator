@@ -40,8 +40,7 @@ const maximizeCanvas = () => {
 };
 
 window.onload = () => {
-    input.init();
-
+    // DOM stuff
     // Setup scroll-to links
     document.querySelectorAll('a[data-scroll-to]').forEach((a) => {
         a.addEventListener('click', (e) => {
@@ -62,6 +61,11 @@ window.onload = () => {
             }
         });
     });
+    // Add 'js-loaded' class so CSS knows not to display noscript related items
+    const bodyClasses = document.getElementsByTagName('body')[0].classList;
+    bodyClasses.remove('js-fail', 'js-noscript');
+
+    input.init();
 
     canvas = document.getElementById('canvas') as HTMLCanvasElement;
     canvasWrapper = document.querySelector('#canvas-wrapper') as HTMLElement;
@@ -71,7 +75,9 @@ window.onload = () => {
 
     gl = window['gl'] = canvas.getContext('webgl2');
     if (gl === null) {
-        alert('Unable to initialize opengl');
+        // Abort and show "missing WebGL 2" message
+        bodyClasses.add('js-fail', 'js-nowebgl');
+        return;
     }
 
     window.testVertSrc = testVertSrc;

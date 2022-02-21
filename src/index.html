@@ -4,8 +4,7 @@
         <meta charset="utf-8" />
         <title>Redstone Architect</title>
     </head>
-    <body>
-        <noscript>Please enable JavaScript to use this simulator!</noscript>
+    <body class="js-noscript js-fail">
         <div id="wrapper">
             <div id="canvas-wrapper">
                 <canvas id="canvas" width="640" height="480"></canvas>
@@ -21,6 +20,24 @@
                         <p class="credits">Created by
                             <a href="https://github.com/maxematical" target="_blank">Max Battle</a> |
                             <a href="https://github.com/maxematical/redstone-simulator" target="_blank">GitHub</a></p>
+                    </div>
+
+                    <div id="javascript-warning">
+                        <div class="if-js-noscript">
+                            <h2 class="javascript-warning-heading">JavaScript Disabled!</h2>
+                            <p class="javascript-warning-text">
+                                This simulator needs JavaScript to work properly. If you would like to use it, please
+                                enable JavaScript for this website in your web browser's settings.
+                            </p>
+                        </div>
+                        <div class="if-js-nowebgl">
+                            <h2 class="javascript-warning-heading">WebGL 2 Not Working!</h2>
+                            <p class="javascript-warning-text">
+                                This simulator needs a feature of your web browser called WebGL 2 to function correctly.
+                                If you would like to use it, please update your browser so that the simulator can use
+                                WebGL 2.
+                            </p>
+                        </div>
                     </div>
 
                     <h2>Tutorial Contents</h2>
