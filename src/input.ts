@@ -16,6 +16,7 @@ for (let i = 0; i <= 9; i++) trackKeys.push('Digit' + i);
 // Misc. keys
 trackKeys.push('Space');
 trackKeys.push('ShiftLeft');
+trackKeys.push('ShiftRight');
 trackKeys.push('Escape');
 
 // Current state of held keys

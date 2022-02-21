@@ -211,7 +211,7 @@ window.onload = () => {
         const keyW = input.keyDown['KeyW'];
         const keyQ = input.keyDown['KeyQ'];
         const keyE = input.keyDown['KeyE'];
-        const keyShift = input.keyPressed['ShiftLeft'];
+        const keyShift = input.keyPressed['ShiftLeft'] || input.keyPressed['ShiftRight'];
         const keyEscape = input.keyPressed['Escape'];
 
         movementInput[0] = 0;
@@ -278,22 +278,27 @@ window.onload = () => {
         const hasMovementInput = !vec3.equals(movementInput, directions.none);
         let moved: boolean = false;
 
-        if(keyShift/*&&input.keyDown['Shift'] */) {
-            if (Grid.getBlockN(grid, highlightBlock) == blocks.dust) {
-                let state = Grid.getStateN(grid, highlightBlock);
-                if (!(state & 0x0FF0)) {
-                    state = (0x1000) | (state & 0x0FFF);
-                    Grid.trySetState(grid, highlightBlock, blocks.dust, state);
-                }
-            }
-        }
-
         // Handle input behavior -- this varies depending on the current mode
         if (!selectFaceMode) {
             // "default" mode
             moved = hasMovementInput;
             vec3.add(highlightBlock, highlightBlock, movementInput);
             cursor.showAllFaces();
+
+            // Handle "interact" button
+            if(input.keyDown['KeyX']) {
+                // Toggle plus/dot for redstone wire
+                if (Grid.getBlockN(grid, highlightBlock) == blocks.dust) {
+                    let state = Grid.getStateN(grid, highlightBlock);
+                    // Check that dust is not connected to anything -- i.e. it's either a plus or a dot
+                    if (!(state & 0x0FF0)) {
+                        // Toggle plus/dot status
+                        const isDot: boolean = !!(state & 0x1000);
+                        state = (isDot ? 0 : 0x1000) | (state & 0x0FFF);
+                        Grid.trySetState(grid, highlightBlock, blocks.dust, state);
+                    }
+                }
+            }
 
             // Handle place block request
             if (isPlaceInput) {

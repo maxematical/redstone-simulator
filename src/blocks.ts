@@ -512,7 +512,7 @@ const dust: BlockDust = {
 
         // If there is a connection, plus/dot bit should be zero, otherwise keep it the same as before
         const plusDotValue = anyConnection ? 0 : (oldState & 0x1000);
-        newState |= plusDotValue << 12;
+        newState |= plusDotValue;
 
         // Check for strong powering or power source
         for (let i = 0; i < 6; i++) {
