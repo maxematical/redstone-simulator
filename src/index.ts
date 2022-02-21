@@ -42,6 +42,27 @@ const maximizeCanvas = () => {
 window.onload = () => {
     input.init();
 
+    // Setup scroll-to links
+    document.querySelectorAll('a[data-scroll-to]').forEach((a) => {
+        a.addEventListener('click', () => {
+            const scrollToName: string | null = a.getAttribute('data-scroll-to');
+            const scrollToElement: HTMLElement = scrollToName && document.querySelector(`[data-scroll-marker=${scrollToName}]`);
+            if (scrollToElement) {
+                const container = document.querySelector('#info-bar');
+                container.scrollTop = scrollToElement.offsetTop - 10;
+
+                const highlightClass = 'highlighted-element';
+                document.querySelector(`.${highlightClass}`)?.classList?.remove(highlightClass);
+                scrollToElement.classList.add(highlightClass);
+
+                // Restart animation -- https://stackoverflow.com/a/45036752
+                scrollToElement.style.animation = 'none';
+                scrollToElement.offsetHeight;
+                scrollToElement.style.animation = null;
+            }
+        });
+    });
+
     canvas = document.getElementById('canvas') as HTMLCanvasElement;
     canvasWrapper = document.querySelector('#canvas-wrapper') as HTMLElement;
     maximizeCanvas();
@@ -62,7 +83,7 @@ window.onload = () => {
     window.hotbarVertSrc = hotbarVertSrc;
     window.hotbarFragSrc = hotbarFragSrc;
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(0.058, 0.063, 0.072, 1.0);
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
     gl.cullFace(gl.BACK);
@@ -191,6 +212,7 @@ window.onload = () => {
         const keyQ = input.keyDown['KeyQ'];
         const keyE = input.keyDown['KeyE'];
         const keyShift = input.keyPressed['ShiftLeft'];
+        const keyEscape = input.keyPressed['Escape'];
 
         movementInput[0] = 0;
         movementInput[1] = 0;
@@ -235,7 +257,7 @@ window.onload = () => {
             camYaw -= 1.57079633;
             rotated = true;
         }
-        if (rotated) {
+        if (rotated || keyEscape) {
             selectFaceMode = false;
         }
 
@@ -255,6 +277,16 @@ window.onload = () => {
 
         const hasMovementInput = !vec3.equals(movementInput, directions.none);
         let moved: boolean = false;
+
+        if(keyShift/*&&input.keyDown['Shift'] */) {
+            if (Grid.getBlockN(grid, highlightBlock) == blocks.dust) {
+                let state = Grid.getStateN(grid, highlightBlock);
+                if (!(state & 0x0FF0)) {
+                    state = (0x1000) | (state & 0x0FFF);
+                    Grid.trySetState(grid, highlightBlock, blocks.dust, state);
+                }
+            }
+        }
 
         // Handle input behavior -- this varies depending on the current mode
         if (!selectFaceMode) {

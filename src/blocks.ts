@@ -222,7 +222,7 @@ const redstoneDustRenderer: BlockRenderer = {
         // Determine the shape and orientation of our texture
         if (nConnections === 0) {
             // 0 connections: Plus or dot
-            const isDot = (state & 0x1000) === 1;
+            const isDot = !!(state & 0x1000);
             wireTexture = isDot ? WIRE_TEXTURE_DOT : WIRE_TEXTURE_PLUS;
         } else if (nConnections === 1) {
             // 1 connection: Line
@@ -511,8 +511,8 @@ const dust: BlockDust = {
         }
 
         // If there is a connection, plus/dot bit should be zero, otherwise keep it the same as before
-        const plusDotValue = anyConnection ? 0 : oldState & 0x1000;
-        newState |= plusDotValue << 8;
+        const plusDotValue = anyConnection ? 0 : (oldState & 0x1000);
+        newState |= plusDotValue << 12;
 
         // Check for strong powering or power source
         for (let i = 0; i < 6; i++) {

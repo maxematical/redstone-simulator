@@ -27,7 +27,8 @@ html, body {
     position: absolute;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Piazzolla:wght@100;200;300;400;500&display=swap');
+/* @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Piazzolla:wght@100;200;300;400;500&display=swap'); */
+@import url('https://fonts.googleapis.com/css2?family=Recursive&display=swap');
 
 #info-bar {
     width: 40.0%;
@@ -65,13 +66,30 @@ html, body {
 
 #info-bar h1 {
     color: #e32;
+    font-family: 'Recursive Sans Linear';
 }
 
 #info-bar h2 {
-    font-size: 1.6em;
+    font-size: 1.5em;
     font-weight: 500;
+    margin: 0.8em 0 0em 0;
     letter-spacing: -1px;
     text-shadow: none;
+}
+
+.version {
+    color: #667;
+    font-size: 60%;
+    font-family: 'Recursive Mono Linear';
+}
+
+#info-bar a {
+    color: #36a0b3;
+    font-weight: 700;
+}
+
+#info-bar a:hover {
+    color: #3294a6;
 }
 
 li {
@@ -80,4 +98,49 @@ li {
 
 li p {
     margin: 0 0 0.75em 0;
+}
+
+.tagline {
+    font-weight: 700;
+    font-style: italic;
+    color: #d92e1e;
+
+    display: block;
+    width: 60%;
+
+    margin-left: auto;
+    padding-right: 2em;
+
+    position: relative;
+    top: -0.8em;
+    margin-bottom: -1.1em;
+
+    text-align: right;
+}
+
+.credits {
+    color: hsl(165, 0%, 15%);
+    margin-top: 0.65em;
+    font-size: 90%;
+}
+
+.contents {
+    font-size: 95%;
+}
+
+.contents li { margin-bottom: 0.15em; }
+
+@keyframes highlight {
+    /* from { transform: scale(1.0); }
+    50%  { transform: scale(1.14); }
+    to   { transform: scale(1.0); } */
+    from { background-color: #ebcc34ff; }
+    50%  { background-color: #ebcc34ff; }
+    to   { background-color: #ebcc3400; }
+}
+
+.highlighted-element {
+    /* transform-origin: 2em 50%;
+    animation: highlight 0.95s ease; */
+    animation: highlight 3.60s ease;
 }
