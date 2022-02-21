@@ -44,7 +44,7 @@ window.onload = () => {
 
     // Setup scroll-to links
     document.querySelectorAll('a[data-scroll-to]').forEach((a) => {
-        a.addEventListener('click', () => {
+        a.addEventListener('click', (e) => {
             const scrollToName: string | null = a.getAttribute('data-scroll-to');
             const scrollToElement: HTMLElement = scrollToName && document.querySelector(`[data-scroll-marker=${scrollToName}]`);
             if (scrollToElement) {

@@ -2,13 +2,14 @@
 
 // A list of all the keys we should track. If a key isn't in this list, it won't be tracked
 const trackKeys: string[] = [];
+const keyBlacklist: string[] = [];
 
 // Letter keys
 for (let keycode = 0x41; keycode <= 0x5A; keycode++)
 trackKeys.push('Key' + String.fromCharCode(keycode));
 
 // Arrow keys
-['Up', 'Down', 'Left', 'Right'].forEach(k => trackKeys.push('Arrow' + k));
+[/*'Up', 'Down', */'Left', 'Right'].forEach(k => trackKeys.push('Arrow' + k));
 
 // Number keys
 for (let i = 0; i <= 9; i++) trackKeys.push('Digit' + i);
@@ -25,14 +26,18 @@ const keyDown = [];
 const keyWasPressed = [];
 
 const handleKeydown = (e: KeyboardEvent) => {
-    if (trackKeys.indexOf(e.code) >= 0) {
+    if (trackKeys.indexOf(e.code) >= 0 &&
+            !e.altKey && !e.ctrlKey && !e.metaKey) {
         keyPressed[e.code] = true;
+        e.preventDefault();
     }
 };
 
 const handleKeyup = (e: KeyboardEvent) => {
-    if (trackKeys.indexOf(e.code) >= 0) {
+    if (trackKeys.indexOf(e.code) >= 0 &&
+            !e.altKey && !e.ctrlKey && !e.metaKey) {
         keyPressed[e.code] = false;
+        e.preventDefault();
     }
 };
 
