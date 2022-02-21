@@ -24,14 +24,134 @@
                     </div>
 
                     <h2>Tutorial Contents</h2>
-                    <div class="contents">
-                        <ul>
-                            <li><a href="javascript:void" data-scroll-to="what">What is Redstone?</a></li>
-                            <li><a href="javascript:void" data-scroll-to="controls">Basic controls</a></li>
-                            <li><a href="javascript:void" data-scroll-to="blocks">Blocks guide</a></li>
-                            <li><a href="javascript:void" data-scroll-to="examples">Examples</a></li>
-                        </ul>
-                    </div>
+                    <p>
+                        This interactive simulator lets you design, build, and test electric circuit&mdash;like structures
+                        from the popular video game <em>Minecraft</em>.
+                    </p>
+                    <p>
+                        If you have not played Minecraft before, or are unfamiliar with how redstone works, I recommend you
+                        read the section at the bottom titled "What is Redstone?" first. Then, check the controls and
+                        examples sections.
+                    </p>
+                    <p>
+                        The system of redstone can be somewhat confusing at times. While it is possible to learn it
+                        only by reading this tutorial, if you are interested in it, you might be better off watching a
+                        few YouTube videos first.
+                    </p>
+                    <ul class="contents">
+                        <li><a href="javascript:void" data-scroll-to="controls">Basic controls</a></li>
+                        <li><a href="javascript:void" data-scroll-to="examples">Examples</a></li>
+                        <li><a href="javascript:void" data-scroll-to="blocks">Blocks (in-depth guide)</a></li>
+                        <li><a href="javascript:void" data-scroll-to="what">What is Redstone?</a></li>
+                    </ul>
+
+                    <h2 data-scroll-marker="controls">Controls</h2>
+                    <ul>
+                        <li>
+                            You can move around by using the <strong>WASD</strong> and <strong>QE keys</strong>, and
+                            rotate the camera with the <strong>arrow keys</strong>.
+                        </li>
+                        <li>
+                            <p>
+                                The location that you're currently looking at is highlighted in yellow.
+                                Pressing <strong>Space</strong> will either remove the block at that location, or
+                                place a block when the location is empty.
+                            </p>
+                        </li>
+                        <li>
+                            The yellow toolbar on the bottom shows which block you are going to place.
+                            You can change which one you have currently selected by pressing the <strong>1&ndash;4 keys</strong>.
+                        </li>
+                    </ul>
+
+                    <h2 data-scroll-marker="blocks">Blocks</h2>
+                    <p>
+                        This simulator implements a few of the blocks that can be used to build redstone circuits.
+                    </p>
+                    <p>
+                        Please note that this section is intended as reference for people who already know the redstone
+                        system. As such, it is much longer and more detailed than the other sections.
+                    </p>
+                    <ul>
+                        <li>
+                            <p>
+                                <strong>Cube:</strong> The standard cube block;
+                                can be selected via <strong>1</strong> on the keyboard. Cubes can be used to build structures, or serve as scaffolding for other blocks.
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <strong>Redstone wire:</strong> Used to transport signals from one place to another;
+                                can be selected via <strong>2</strong> on the keyboard.
+                            </p>
+                            <p>
+                                A block of wire connects to adjacent wires and can thus be used to transport a signal from
+                                one location to another. (Wire cannot travel diagonally.) By placing wire laterally adjacent
+                                but one block higher or lower, you can build "stairs" that let signals travel up or down.
+                            </p>
+                            <p>
+                                Redstone wire must be mounted on top of a solid surface to be placed &mdash; i.e. it must
+                                be on a cube or a slab.
+                            </p>
+                            <p>
+                                An individual block of wire is either unpowered and appears very dark red (its usual state),
+                                or is powered by an adjacent powered block and appears appear red.
+                            </p>
+                            <p>
+                                The power in a length of wire will fall off over distance, and weaker-powered wire will
+                                appear darker. After 15 blocks, the power will fade out completely.
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <strong>Slab:</strong> a "half-cube";
+                                can be selected via <strong>3</strong> on the keyboard.
+                            </p>
+                            <p>
+                                Slabs fulfill most of the same functions as cubes, but have some slight differences.
+                                Slabs cannot be powered (in the sense that a cube is).
+                                First, Redstone torches can only be mounted on the top side of a slab.
+                            </p>
+                            <p>
+                                Second, when
+                                redstone wire is placed on "stairs" made of slabs, the wire will not visually connect
+                                and power will only be able to travel in the "downwards" direction of the stairs.
+                            </p>
+                            <p>
+                                Lastly, slabs cannot be used to "pinch" stairs of redstone wire.
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                <strong>Redstone torch:</strong> a toggleable power source;
+                                can be selected via <strong>4</strong> on the keyboard.
+                            </p>
+                            <p>
+                                Redstone torches must be mounted on a solid surface; in practice this means
+                                that you can only place torches on the top or sides of a cube, or the top of
+                                a slab. (Torches can't be placed on a downwards-facing surface.)
+                            <p>
+                                Redstone torches can be either lit ("on") or unlit ("off"). Lit torches will provide
+                                power to any adjacent blocks, such as wires.
+                            </p>
+                            <p>
+                                In addition, a lit torch will strongly power any cube block directly above it, meaning
+                                that wires placed on that cube will also be powered.
+                            </p>
+                            <p>
+                                Whether a torch is turned on or not depends on whether the block it is mounted on
+                                is <em>weakly powered</em>.
+                            </p>
+                            <p>
+                                A cube, the most common mounting block for torches, is weakly powered when either there
+                                is a lit torch directly underneath it, or there is a powered wire whose shape is pointing
+                                into the cube. 
+
+                                (Slabs cannot be weakly powered, which effectively means that a torch mounted on a slab
+                                can never be turned off.)
+                            </p>
+                        </li>
+                    </ul>
 
                     <h2 data-scroll-marker="what">What is Redstone?</h2>
                     <p>
@@ -52,26 +172,7 @@
                         It doesn't have every single tool and feature as the "real" Minecraft, but you can still use it to
                         quickly try your ideas at any time.
                     </p>
-                    <h2 data-scroll-marker="controls">Controls</h2>
-                    <ul>
-                        <li>
-                            You can move around by using the <strong>WASD</strong> and <strong>QE keys</strong>, and
-                            rotate the camera with the <strong>arrow keys</strong>.
-                        </li>
-                        <li>
-                            <p>
-                                The location that you're currently looking at is highlighted in yellow.
-                            </p>
-                            <p>
-                                Pressing <strong>Space</strong> will either remove the block at that location, or
-                                place a block when the location is empty.
-                            </p>
-                        </li>
-                        <li>
-                            You can change the block that will be placed by pressing the <strong>1&ndash;4 keys</strong>.
-                            The yellow toolbar on the bottom shows which block that is currently selected.
-                        </li>
-                    </ul>
+
                 </div>
             </div>
         </div>
