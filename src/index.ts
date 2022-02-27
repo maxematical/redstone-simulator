@@ -42,10 +42,15 @@ const maximizeCanvas = () => {
 window.onload = () => {
     // DOM stuff
     // Setup scroll-to links
-    document.querySelectorAll('a[data-scroll-to]').forEach((a) => {
+    document.querySelectorAll('a[href^="#scroll--"]').forEach((a: HTMLAnchorElement) => {
+        const scrollToName = a.href.substring(a.href.indexOf('scroll--') + 'scroll--'.length);
+        a.setAttribute('href', 'javascript:void');
+
+        const scrollToElement: HTMLElement = document.getElementById(`scroll--${scrollToName}`);
+        if (!scrollToElement)
+            return;
+        scrollToElement.setAttribute('id', '');
         a.addEventListener('click', (e) => {
-            const scrollToName: string | null = a.getAttribute('data-scroll-to');
-            const scrollToElement: HTMLElement = scrollToName && document.querySelector(`[data-scroll-marker=${scrollToName}]`);
             if (scrollToElement) {
                 const container = document.querySelector('#info-bar');
                 container.scrollTop = scrollToElement.offsetTop - 10;
