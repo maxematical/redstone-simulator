@@ -93,19 +93,28 @@ html, body {
 
 #javascript-warning {
     display: none; /* only display if JavaScript isn't working for some reason */
-    background-color: #ebcc34;
+    background-color: hsl(50, 82%, 56%);
+    color:hsl(50, 10%, 23%);
     padding: 1em 10px 0.5em 10px;
-    margin: 1em 10px 0px 10px;
-    font-size: 95%;
-    text-align: center !important;
+    margin: 1.5em 0px 0px 0px;
     text-shadow: none;
+    text-align: center !important;
+    border-radius: 5px;
+    box-shadow: 0px 0px 2px hsl(50, 90%, 30%);
 }
 
-.javascript-warning-heading {
+#javascript-warning h2 {
     margin-top: 0 !important;
-    color: #334;
-    font-family: 'Recursive Sans Linear';
+    color: inherit;
     font-weight: 700;
+}
+
+#javascript-warning p {
+    margin-left: auto;
+    margin-right: auto;
+    width: 82%;
+    font-size: 115%;
+    font-family: 'Recursive Mono Linear';
 }
 
 li {
@@ -145,6 +154,16 @@ li p {
 }
 
 .contents li { margin-bottom: 0.15em; }
+
+.keybind {
+    background-color: hsl(240, 4%, 51%);
+    box-shadow: 0px 2px 0px hsl(240, 3%, 62%);
+    color: hsl(157, 10%, 96%);
+    text-shadow: none;
+    padding: 0 4px;
+    font-family: 'Recursive Mono Linear';
+    border-radius: 0.3em;
+}
 
 @keyframes highlight {
     /* from { transform: scale(1.0); }

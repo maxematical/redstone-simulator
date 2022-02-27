@@ -33,7 +33,7 @@
                         <div class="if-js-nowebgl">
                             <h2 class="javascript-warning-heading">WebGL 2 Not Working!</h2>
                             <p class="javascript-warning-text">
-                                This simulator needs a feature of your web browser called WebGL 2 to function correctly.
+                                This simulator needs WebGL 2 to work.
                                 If you would like to use it, please update your browser so that the simulator can use
                                 WebGL 2.
                             </p>
@@ -46,38 +46,35 @@
                         from the popular video game <em>Minecraft</em>.
                     </p>
                     <p>
-                        If you have not played Minecraft before, or are unfamiliar with how redstone works, I recommend you
+                        If you haven't played Minecraft before, or are unfamiliar with how redstone works, I recommend you
                         read the section at the bottom titled "What is Redstone?" first. Then, check the controls and
                         examples sections.
-                    </p>
-                    <p>
-                        The system of redstone can be somewhat confusing at times. While it is possible to learn it
-                        only by reading this tutorial, if you are interested in it, you might be better off watching a
-                        few YouTube videos first.
                     </p>
                     <ul class="contents">
                         <li><a href="javascript:void" data-scroll-to="controls">Basic controls</a></li>
                         <li><a href="javascript:void" data-scroll-to="examples">Examples</a></li>
                         <li><a href="javascript:void" data-scroll-to="blocks">Blocks (in-depth guide)</a></li>
+                        <li><a href="javascript:void" data-scroll-to="advanced">Advanced Tips & Techniques</a></li>
                         <li><a href="javascript:void" data-scroll-to="what">What is Redstone?</a></li>
                     </ul>
 
                     <h2 data-scroll-marker="controls">Controls</h2>
                     <ul>
                         <li>
-                            You can move around by using the <strong>WASD</strong> and <strong>QE keys</strong>, and
-                            rotate the camera with the <strong>arrow keys</strong>.
+                            You can move around using the <span class="keybind">WASDQE</span> keys, and
+                            rotate the camera with the <span class="keybind">arrow</span> keys.
                         </li>
                         <li>
                             <p>
                                 The location that you're currently looking at is highlighted in yellow.
-                                Pressing <strong>Space</strong> will either remove the block at that location, or
+                                Pressing <span class="keybind">Space</span> will either remove the block at that location, or
                                 place a block when the location is empty.
                             </p>
                         </li>
                         <li>
                             The yellow toolbar on the bottom shows which block you are going to place.
-                            You can change which one you have currently selected by pressing the <strong>1&ndash;4 keys</strong>.
+                            You can change which one you have currently selected using
+                            <span class="keybind">1&ndash;4</span>.
                         </li>
                     </ul>
 
@@ -93,22 +90,21 @@
                         <li>
                             <p>
                                 <strong>Cube:</strong> The standard cube block;
-                                can be selected via <strong>1</strong> on the keyboard. Cubes can be used to build structures, or serve as scaffolding for other blocks.
+                                can be selected with <span class="keybind">1</span>. Cubes can be used to build structures, or serve as scaffolding for other blocks.
                             </p>
                         </li>
                         <li>
                             <p>
                                 <strong>Redstone wire:</strong> Used to transport signals from one place to another;
-                                can be selected via <strong>2</strong> on the keyboard.
+                                can be selected with <span class="keybind">2</span>.
                             </p>
                             <p>
-                                A block of wire connects to adjacent wires and can thus be used to transport a signal from
-                                one location to another. (Wire cannot travel diagonally.) By placing wire laterally adjacent
-                                but one block higher or lower, you can build "stairs" that let signals travel up or down.
+                                Wires connect with each other and can be used to transport signals from one place to
+                                another. They can also climb up "stairs".
                             </p>
                             <p>
-                                Redstone wire must be mounted on top of a solid surface to be placed &mdash; i.e. it must
-                                be on a cube or a slab.
+                                Redstone wire can only be placed on a solid surface &mdash; meaning you have to put a
+                                cube or slab down before laying your wire.
                             </p>
                             <p>
                                 An individual block of wire is either unpowered and appears very dark red (its usual state),
@@ -122,7 +118,7 @@
                         <li>
                             <p>
                                 <strong>Slab:</strong> a "half-cube";
-                                can be selected via <strong>3</strong> on the keyboard.
+                                can be selected with <span class="keybind">3</span>.
                             </p>
                             <p>
                                 Slabs fulfill most of the same functions as cubes, but have some slight differences.
@@ -141,7 +137,7 @@
                         <li>
                             <p>
                                 <strong>Redstone torch:</strong> a toggleable power source;
-                                can be selected via <strong>4</strong> on the keyboard.
+                                can be selected with <span class="keybind">4</span>.
                             </p>
                             <p>
                                 Redstone torches must be mounted on a solid surface; in practice this means
@@ -170,18 +166,42 @@
                         </li>
                     </ul>
 
+                    <h2 data-scroll-marker="advanced">Advanced Tips & Techniques</h2>
+                    <ul>
+                        <li>
+                            <p>
+                                If redstone dust is configured in a plus shape, you can press
+                                <span class="keybind">X</span> and it will change to a dot.
+                                The difference is that while plus-shaped dust provides power to all adjacent blocks
+                                (except above), dot-shaped dust will only provide
+                                weak power to the block below it.
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                You can also rotate the camera using <span class="keybind">Shift</span> +
+                                <span class="keybind">A/D</span>.
+                            </p>
+                        </li>
+                        <li>
+                            <p>
+                                Pressing <span class="keybind">Z</span> will toggle semi-transparent and opaque display.
+                                (If you can't tell what this is doing, try rotating the camera)
+                            </p>
+                        </li>
+                    </ul>
+
+
                     <h2 data-scroll-marker="what">What is Redstone?</h2>
                     <p>
-                        Redstone is a group of fictional devices from the popular video game <em>Minecraft</em>. It
-                        serves as a loose analogue of electricity and can be used to create simple devices like
-                        light switches to more complicated things like combination locks or automated factories and
-                        machines.
+                        Redstone is a system of devices from the popular video game <em>Minecraft</em> and
+                        works like a loose analogue of electricity. It can be used to create simple devices like
+                        a light switch to more complicated ones like a combination lock.
                     </p>
                     <p>
-                        Although each individual "redstone device" is simple, when combined they can become (to some extent)
-                        nearly as versatile
-                        as real-life electronic circuits. Players have even been able to create fully-functional &mdash;
-                        albeit simple &mdash; computers running inside of Minecraft!
+                        Although the devices are individually fairly simple, when used together they can interact
+                        to create very advanced and complex circuits. Redstone can even be used to simulate rudimentary
+                        computers!
                     </p>
                     <p>
                         This simulator lets you experiment with several redstone devices and create simple circuits in your
@@ -190,6 +210,8 @@
                         quickly try your ideas at any time.
                     </p>
 
+                    <hr/>
+                    <p>Copyright (C) 2022 Max Battle</p>
                 </div>
             </div>
         </div>
