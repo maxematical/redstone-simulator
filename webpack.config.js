@@ -1,5 +1,6 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const HTMLInlineCSSWebpackPlugin = require('html-inline-css-webpack-plugin').default;
 const path = require('path');
 
 /** @type {import('webpack').Configuration} */ // <-- enables VSCode autocomplete
@@ -17,7 +18,8 @@ module.exports = {
             template: 'src/index.html',
             publicPath: '.' // use relative paths
         }),
-        new MiniCssExtractPlugin()
+        new MiniCssExtractPlugin(),
+        new HTMLInlineCSSWebpackPlugin(),
     ],
     module: {
         rules: [

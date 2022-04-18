@@ -41,51 +41,69 @@
                         </div>
                     </div>
 
-                    <h2>Tutorial Contents</h2>
                     <p>
                         This interactive simulator lets you design, build, and test electric circuit&mdash;like structures
                         from the popular video game <em>Minecraft</em>.
                     </p>
-                    <p>
-                        If you haven't played Minecraft before, or are unfamiliar with how redstone works, I recommend you
-                        read the section at the bottom titled "What is Redstone?" first. Then, check the controls and
-                        examples sections.
-                    </p>
+
                     <ul class="contents">
+                        <li><a href="#scroll--what">What is Redstone?</a></li>
                         <li><a href="#scroll--controls">Basic controls</a></li>
                         <li><a href="#scroll--examples">Examples</a> (TODO)</li>
                         <li><a href="#scroll--blocks">Blocks (in-depth guide)</a></li>
                         <li><a href="#scroll--advanced">Advanced Tips & Techniques</a></li>
-                        <li><a href="#scroll--what">What is Redstone?</a></li>
                     </ul>
+
+                    <h2 id="scroll--what">What is Redstone?</h2>
+                    <p>
+                        "Redstone" is a fictional analogue of electricity that comes from the
+                        video game <em>Minecraft</em>. Players can use redstone to create their own
+                        virtual inventions that range from combination locks or music boxes or even simple
+                        computers.
+                    </p>
+                    <p>
+                        Players do this by combining various "blocks", such as levers or pieces of wire.
+                        Each block has its own particular function that it is useful for. When placed together
+                        in the right way, the blocks interact with one another and can be used to create complex
+                        devices.
+                    </p>
+                    <p>
+                        This simulator implements some of the blocks from Minecraft, so that you can design and
+                        experiment with your own redstone circuits.
+                    </p>
+                    <p>
+                        <a href="#scroll--top">Back to top</a>
+                    </p>
 
                     <h2 id="scroll--controls">Controls</h2>
                     <ul>
                         <li>
-                            You can move around using the <span class="keybind">WASDQE</span> keys, and
-                            rotate the camera with the <span class="keybind">arrow</span> keys.
+                            Move using the <span class="keybind">WASDQE</span> keys and rotate the camera
+                            with the <span class="keybind">&larr;</span> <span class="keybind">&rarr;</span> keys.
+                        </li>
+                        <li>
+                            Select blocks to place in the world using the
+                            <span class="keybind">1 &ndash; 4</span> keys.
+                        </li>
+                        <li>
+                            The toolbar on the bottom shows the different blocks that you can select,
+                            and displays which one you have currently selected.
                         </li>
                         <li>
                             <p>
-                                The location that you're currently looking at is highlighted in yellow.
-                                Pressing <span class="keybind">Space</span> will either remove the block at that location, or
-                                place a block when the location is empty.
+                                Press <span class="keybind">Space</span> to place or remove blocks:
                             </p>
-                        </li>
-                        <li>
-                            The yellow toolbar on the bottom shows which block you are going to place.
-                            You can change which one you have currently selected using
-                            <span class="keybind">1&ndash;4</span>.
+                            <ul>
+                                <li>There is a location highlighted in yellow. You can move it by moving the camera.</li>
+                                <li>If the highlighted location is empty, the currently selected block will be placed</li>
+                                <li>If a block is already in the highlighted location, it will be removed</li>
+                            </ul>
                         </li>
                     </ul>
 
                     <h2 id="scroll--blocks">Blocks</h2>
                     <p>
                         This simulator implements a few of the blocks that can be used to build redstone circuits.
-                    </p>
-                    <p>
-                        Please note that this section is intended as reference for people who already know the redstone
-                        system. As such, it is much longer and more detailed than the other sections.
                     </p>
                     <ul>
                         <li>
@@ -191,28 +209,6 @@
                             </p>
                         </li>
                     </ul>
-
-
-                    <h2 id="scroll--what">What is Redstone?</h2>
-                    <p>
-                        Redstone is a system of devices from the popular video game <em>Minecraft</em> and
-                        works like a loose analogue of electricity. It can be used to create simple devices like
-                        a light switch to more complicated ones like a combination lock.
-                    </p>
-                    <p>
-                        Although the devices are individually fairly simple, when used together they can interact
-                        to create very advanced and complex circuits. Redstone can even be used to simulate rudimentary
-                        computers!
-                    </p>
-                    <p>
-                        This simulator lets you experiment with several redstone devices and create simple circuits in your
-                        web browser.
-                        It doesn't have every single tool and feature as the "real" Minecraft, but you can still use it to
-                        quickly try your ideas at any time.
-                    </p>
-                    <p>
-                        <a href="#scroll--top">Back to top</a>
-                    </p>
 
                     <hr/>
                     <p>Copyright (C) 2022 Max Battle</p>
