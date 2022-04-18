@@ -10,6 +10,7 @@ import input from './input';
 import imgSrc from './redstone.png';
 import { Simulator, BlockUpdate } from './simulator';
 import { adjacentPositions } from './util';
+import { loadScenario } from './examples';
 
 import testVertSrc from './test_vert.glsl';
 import testFragSrc from './test_frag.glsl';
@@ -72,11 +73,15 @@ window.onload = () => {
 
     input.init();
 
+    // CANVAS SETUP
+
     canvas = document.getElementById('canvas') as HTMLCanvasElement;
     canvasWrapper = document.querySelector('#canvas-wrapper') as HTMLElement;
     maximizeCanvas();
     // typescript doesn't come with definitions for ResizeObserver?
     new (window as any).ResizeObserver(maximizeCanvas).observe(canvasWrapper);
+
+    // WEBGL SETUP
 
     gl = window['gl'] = canvas.getContext('webgl2');
     if (gl === null) {
@@ -84,6 +89,9 @@ window.onload = () => {
         bodyClasses.add('js-fail', 'js-nowebgl');
         return;
     }
+
+    // SHADER SOURCE GLOBALS
+    // (shaders are compiled by the separate files when needed)
 
     window.testVertSrc = testVertSrc;
     window.testFragSrc = testFragSrc;
@@ -93,6 +101,8 @@ window.onload = () => {
     window.cursorFragSrc = cursorFragSrc;
     window.hotbarVertSrc = hotbarVertSrc;
     window.hotbarFragSrc = hotbarFragSrc;
+
+    // OPENGL SETUP
 
     gl.clearColor(0.058, 0.063, 0.072, 1.0);
     gl.enable(gl.CULL_FACE);
@@ -110,30 +120,6 @@ window.onload = () => {
     const projMat = mat4.create();
     const cameraMat = mat4.create();
     const mvpMat = new Float32Array(16);
-    
-    const grid = Grid.new([4, 4, 3], [0, -1, 0]);
-    const simulator = new Simulator(grid);
-
-    // Grid.set(grid, [0, 0, 0], blocks.stone);
-    // Grid.set(grid, [1, 0, 0], blocks.stone);
-    // Grid.set(grid, [0, 1, 0], blocks.stone);
-    Grid.set(grid, [0, 0, 0], blocks.dust);
-    Grid.set(grid, [1, 0, 0], blocks.stone);
-    Grid.set(grid, [2, 0, 0], blocks.torch, 0x1);
-    Grid.set(grid, [3, 0, 0], blocks.dust);
-    Grid.set(grid, [0, 1, 0], blocks.torch, 0x2 | 0x8);
-    Grid.set(grid, [1, 1, 0], blocks.stone);
-    Grid.set(grid, [2, 1, 0], blocks.stone);
-    Grid.set(grid, [0, -1, 0], blocks.stone);
-    Grid.set(grid, [3, -1, 0], blocks.stone);
-    for (let i = 0; i < 4; i++) simulator.doGameTick();
-    Grid.set(grid, [1, 2, 0], blocks.dust);
-    Grid.set(grid, [2, 2, 0], blocks.dust);
-    for (let i = 0; i < 2; i++) simulator.doGameTick();
-
-    const lgr = new LayeredGridRenderer();
-    lgr.setCamera([0, 0, -1], vec3.create());
-    lgr.updateModels(grid);
 
     const temp = vec3.create();
     const CAMERA_SHIFT: vec3 = [ 0, 0, 7.5 ];
@@ -164,15 +150,48 @@ window.onload = () => {
     let selectedBlockTime = -100.0; // time when the current block was selected
     let selectFaceMode = false;
 
+    // GRID / SIMULATOR INITIALIZATION, SCENARIOS
+
+    let grid: Grid;
+    let simulator: Simulator;
+
+    window['loadScenario'] = (scenarioName: string) => {
+        const result = loadScenario(scenarioName);
+        if (!result)
+            throw new Error(`Scenario "${scenarioName}" not found`);
+        const [sGrid, sSim] = result;
+        grid = sGrid;
+        simulator = sSim;
+
+        vec3.set(highlightBlock, 0, 0, 0);
+        camTiltX = CAM_ROTATE_X_2;
+        camTiltY = CAM_ROTATE_Y;
+        camYaw = 0;
+        selectFaceMode = false;
+    };
+    window['loadScenario']('default');
+    
+    // GRID RENDERER
+
+    const lgr = new LayeredGridRenderer();
+    lgr.setCamera([0, 0, -1], vec3.create());
+    lgr.updateModels(grid);
+
+    // CURSOR
+
     cursor.init();
 
-    let redstoneTorchCounter = 0; //TODO Remove this ASAP
+    // TIMING INFO
 
     let totalTime: DOMHighResTimeStamp = 0;
     let lastTimestamp: DOMHighResTimeStamp | null = null;
     const renderInfo: GLRenderInfo = { mvp: mvpMat, time: totalTime };
     
+    // HOTBAR
+
     const hotbarRenderer = new HotbarRenderer(blocks.blockRegistry.slice(1));
+
+    // UTILITY FUNCTIONS
 
     const removeBlock = () => {
         // Remove highlighted block
@@ -211,6 +230,8 @@ window.onload = () => {
         vec3.negate(temp, dir);
         return adjacentBlock !== null && adjacentBlock.solidFaces.query(temp);
     };
+
+    // INPUT HANDLING
 
     const movementInput = vec3.create();
     const processInput = (timestamp: DOMHighResTimeStamp) => {
@@ -370,6 +391,8 @@ window.onload = () => {
             // In the future, track the blocks that changed so we only need to update those models
         }
     };
+
+    // GAME LOOP
 
     let gameTickCountdown: DOMHighResTimeStamp = 0;
     const loop = (timestamp: DOMHighResTimeStamp) => {
