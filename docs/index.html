@@ -1,0 +1,264 @@
+<!doctype html><html><head><meta charset="utf-8"/><title>Redstone Architect</title><script defer="defer" src="./src.bundle.js"></script><style type="text/css">@import url(https://fonts.googleapis.com/css2?family=Recursive:wght@300..800&display=swap);
+@import url(https://fonts.googleapis.com/css2?family=Recursive:wght,MONO@300..800,1&display=swap);
+html, body {
+    margin: 0;
+    padding: 0;
+    border: none;
+    width: 100%;
+    height: 100%;
+}
+
+#wrapper {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+#canvas-wrapper {
+    flex-grow: 1;
+
+    /* Prevent canvas size properties from affecting the flexbox */
+    position: relative;
+
+    /* Sometimes canvas will be set 0.5px too big and cause a scrollbar */
+    overflow: hidden;
+}
+
+#canvas-wrapper > canvas {
+    /* Prevent canvas size properties from affecting the flexbox */
+    position: absolute;
+}
+
+/* @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Piazzolla:wght@100;200;300;400;500&display=swap'); */
+/* @import url('https://fonts.googleapis.com/css2?family=Recursive&display=swap'); */
+
+
+/* AAAAAAAAAAAAAAAAAAAAAAA */
+
+
+  /* latin */
+  @font-face {
+    font-family: 'Recursive Mono Linear';
+    font-style: normal;
+    font-weight: 300 800;
+    font-display: swap;
+    src: url(https://fonts.gstatic.com/s/recursive/v26/8vI-7wMr0mhh-RQChyHEH06TlXhq_gukbYrFMk1QuAIcyEwG_X-dpEfaE5YaERmK-CImKsvxvU-MXGX2fSqasNfUlTGZnA.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  
+
+@font-face {
+    font-family: 'Recursive Sans Linear';
+    font-style: normal;
+    font-weight: 300 800;
+    font-display: swap;
+    src: url(https://fonts.gstatic.com/s/recursive/v26/8vI-7wMr0mhh-RQChyHEH06TlXhq_gukbYrFMk1QuAIcyEwG_X-dpEfaE5YaERmK-CImKsvxvU-MXGX2fSqasNfUlTGZnA.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}  
+
+
+/* AAAAAAAAAAAAAAAAAAA */
+
+#info-bar {
+    width: 40.0%;
+    min-width: 400px;
+    font-family: Recursive Sans Linear;
+    font-weight: 500;
+    font-size: 18px;
+    background-color: hsl(165, 2%, 85%);
+    color: hsl(165, 0%, 7%);
+    text-shadow: 0px 0px 2px hsl(157, 20%, 96%);
+    cursor: default;
+    user-select: none;
+    line-height: 1.25;
+    overflow-y: auto;
+}
+
+@media (max-width: 800px) {
+    #info-bar {
+        font-size: 16px;
+    }
+}
+
+#info-bar > div {
+    padding-left: 23px;
+    padding-right: 52px;
+}
+
+#info-bar h1, h2, h3 {
+    font-family: 'Recursive Mono Linear';
+    color: #667;
+    /* color: #dd8; */
+    /* text-shadow: 0px 0px 4px hsl(185, 20%, 97%); */
+}
+
+#info-bar h1 {
+    color: #e32;
+    font-family: 'Recursive Sans Linear';
+}
+
+#info-bar h2 {
+    font-size: 1.5em;
+    font-weight: 500;
+    margin: 0.8em 0 0em 0;
+    letter-spacing: -1px;
+    text-shadow: none;
+}
+
+#info-bar h3 {
+    color: #42424d;
+}
+
+.version {
+    color: #667;
+    font-size: 60%;
+    font-family: 'Recursive Mono Linear';
+}
+
+#info-bar a {
+    color: #36a0b3;
+    font-weight: 700;
+}
+
+#info-bar a:hover {
+    color: #3294a6;
+}
+
+#info-bar button {
+    padding: 0.3em 8px;
+    font-family: 'Recursive Mono Linear';
+    font-size: 1em;
+    background-color: #667;
+    border: 1px solid #5d5d6b;
+    border-radius: 4px;
+    color: #e5e5e5;
+    text-shadow: 0px 1px 3px #555;
+    box-shadow: 0px 2px 2px #999;
+    cursor: pointer;
+}
+
+#info-bar button:hover {
+    background-color: #585866;
+    border-color: #50505c;
+    box-shadow: 0px 2px 3px #888, inset 0px 0px 12px #50505c;
+}
+
+#javascript-warning {
+    display: none; /* only display if JavaScript isn't working for some reason */
+    background-color: hsl(50, 82%, 56%);
+    color:hsl(50, 10%, 23%);
+    padding: 1em 10px 0.5em 10px;
+    margin: 1.5em 0;
+    text-shadow: none;
+    text-align: center !important;
+    border-radius: 5px;
+    box-shadow: 0px 0px 2px hsl(50, 82%, 30%);
+}
+
+#javascript-warning h2 {
+    margin-top: 0 !important;
+    color: inherit;
+    font-weight: 700;
+}
+
+#javascript-warning p {
+    margin-left: auto;
+    margin-right: auto;
+    width: 82%;
+    font-size: 115%;
+    font-family: 'Recursive Mono Linear';
+}
+
+li {
+    margin-bottom: 0.6em;
+}
+
+li p {
+    margin: 0 0 0.75em 0;
+}
+
+.tagline {
+    font-weight: 700;
+    font-style: italic;
+    color: #d92e1e;
+
+    display: block;
+    width: 60%;
+
+    margin-left: auto;
+    padding-right: 2em;
+
+    position: relative;
+    top: -0.8em;
+    margin-bottom: -1.1em;
+
+    text-align: right;
+}
+
+.credits {
+    color: hsl(165, 0%, 15%);
+    margin-top: 0.65em;
+    font-size: 90%;
+}
+
+.contents {
+    font-size: 95%;
+}
+
+.contents li { margin-bottom: 0.15em; }
+
+.keybind {
+    background-color: hsl(240, 4%, 51%);
+    box-shadow: 0px 2px 0px hsl(240, 3%, 62%);
+    color: hsl(157, 10%, 96%);
+    text-shadow: none;
+    padding: 0 4px;
+    font-family: 'Recursive Mono Linear';
+    border-radius: 0.3em;
+}
+
+@keyframes highlight {
+    /* from { transform: scale(1.0); }
+    50%  { transform: scale(1.14); }
+    to   { transform: scale(1.0); } */
+    from { background-color: #ebcc34ff; }
+    50%  { background-color: #ebcc34ff; }
+    to   { background-color: #ebcc3400; }
+}
+
+.highlighted-element {
+    /* transform-origin: 2em 50%;
+    animation: highlight 0.95s ease; */
+    animation: highlight 3.60s ease;
+}
+
+
+/* ========================= */
+/* NOSCRIPT/NOWEBGL HANDLING */
+/* ========================= */
+
+body.js-fail {
+    background-color: hsl(165, 2%, 85%);
+}
+
+body.js-fail #javascript-warning {
+    display: block;
+}
+
+body.js-fail #canvas-wrapper {
+    flex-grow: 0;
+}
+
+body.js-fail #info-bar {
+    width: 50%;
+    margin: auto;
+}
+
+.if-js-noscript { display: none; }
+body.js-noscript .if-js-noscript { display: block; }
+
+.if-js-nowebgl { display: none; }
+body.js-nowebgl .if-js-nowebgl { display: block; }
+
+
+/*# sourceMappingURL=main.css.map*/</style></head><body class="js-noscript js-fail"><div id="wrapper"><div id="canvas-wrapper"><canvas id="canvas" width="640" height="480"></canvas></div><div id="info-bar"><div><div id="scroll--top"></div><h1>Redstone Simulator <span class="version">v0.8</span></h1><div class="tagline">Quickly design, create, and test redstone circuits in your browser!<p class="credits">Created by <a href="https://github.com/maxematical" target="_blank">Max Battle</a> | <a href="https://github.com/maxematical/redstone-simulator" target="_blank">GitHub</a></p></div><div id="javascript-warning"><div class="if-js-noscript"><h2 class="javascript-warning-heading">JavaScript is Disabled!</h2><p class="javascript-warning-text">This simulator needs JavaScript to work properly. If you would like to use it, please enable JavaScript for this website in your web browser's settings.</p></div><div class="if-js-nowebgl"><h2 class="javascript-warning-heading">WebGL 2 Not Working!</h2><p class="javascript-warning-text">This simulator needs WebGL 2 to work. If you would like to use it, please update your browser so that the simulator can use WebGL 2.</p></div></div><p>This interactive simulator lets you design, build, and test electric circuit&mdash;like structures from the popular video game <em>Minecraft</em>.</p><p><em>Please note that this simulator <strong>only works on devices with a keyboard</strong>; if you're on mobile you might need to switch to a computer for it to work. Sorry!</em></p><ul class="contents"><li><a href="#scroll--what">What is Redstone?</a></li><li><a href="#scroll--controls">Basic controls</a></li><li><a href="#scroll--examples">Examples</a></li><li><a href="#scroll--blocks">Blocks (in-depth guide)</a></li><li><a href="#scroll--advanced">Advanced Tips & Techniques</a></li></ul><h2 id="scroll--what">What is Redstone?</h2><p>"Redstone" is a fictional analogue of electricity that comes from the video game <em>Minecraft</em>. Players can use redstone to create their own virtual inventions that range from combination locks or music boxes or even simple computers.</p><p>Players do this by combining various "blocks", such as levers or pieces of wire. Each block has its own particular function that it is useful for. When placed together in the right way, the blocks interact with one another and can be used to create complex devices.</p><p>This simulator implements some of the blocks from Minecraft, so that you can design and experiment with your own redstone circuits.</p><p><a href="#scroll--top">Back to top</a></p><h2 id="scroll--controls">Controls</h2><ul><li>Move using the <span class="keybind">WASDQE</span> keys and rotate the camera with the <span class="keybind">&larr;</span> <span class="keybind">&rarr;</span> keys.</li><li>Select blocks to place in the world using the <span class="keybind">1 &ndash; 4</span> keys.</li><li>The toolbar on the bottom shows the different blocks that you can select, and displays which one you have currently selected.</li><li><p>Press <span class="keybind">Space</span> to place or remove blocks:</p><ul><li>There is a location highlighted in yellow. You can move it by moving the camera.</li><li>If the highlighted location is empty, the currently selected block will be placed</li><li>If a block is already in the highlighted location, it will be removed</li></ul></li></ul><h2 id="scroll--examples">Examples</h2><h3>Simple power transmission</h3><button onclick="loadScenario('simple-power')">Load example</button><h3>Power inversion</h3><button onclick="loadScenario('inversion')">Load example</button><h3>Memory cell</h3><button onclick="loadScenario('memory-cell')">Load example</button><h2 id="scroll--blocks">Blocks</h2><p>This simulator implements a few of the blocks that can be used to build redstone circuits.</p><ul><li><p><strong>Cube:</strong> The standard cube block; can be selected with <span class="keybind">1</span>. Cubes can be used to build structures, or serve as scaffolding for other blocks.</p></li><li><p><strong>Redstone wire:</strong> Used to transport signals from one place to another; can be selected with <span class="keybind">2</span>.</p><p>Wires connect with each other and can be used to transport signals from one place to another. They can also climb up "stairs".</p><p>Redstone wire can only be placed on a solid surface &mdash; meaning you have to put a cube or slab down before laying your wire.</p><p>An individual block of wire is either unpowered and appears very dark red (its usual state), or is powered by an adjacent powered block and appears appear red.</p><p>The power in a length of wire will fall off over distance, and weaker-powered wire will appear darker. After 15 blocks, the power will fade out completely.</p></li><li><p><strong>Slab:</strong> a "half-cube"; can be selected with <span class="keybind">3</span>.</p><p>Slabs fulfill most of the same functions as cubes, but have some slight differences. Slabs cannot be powered (in the sense that a cube is). First, Redstone torches can only be mounted on the top side of a slab.</p><p>Second, when redstone wire is placed on "stairs" made of slabs, the wire will not visually connect and power will only be able to travel in the "downwards" direction of the stairs.</p><p>Lastly, slabs cannot be used to "pinch" stairs of redstone wire.</p></li><li><p><strong>Redstone torch:</strong> a toggleable power source; can be selected with <span class="keybind">4</span>.</p><p>Redstone torches must be mounted on a solid surface; in practice this means that you can only place torches on the top or sides of a cube, or the top of a slab. (Torches can't be placed on a downwards-facing surface.)</p><p>Redstone torches can be either lit ("on") or unlit ("off"). Lit torches will provide power to any adjacent blocks, such as wires.</p><p>In addition, a lit torch will strongly power any cube block directly above it, meaning that wires placed on that cube will also be powered.</p><p>Whether a torch is turned on or not depends on whether the block it is mounted on is <em>weakly powered</em>.</p><p>A cube, the most common mounting block for torches, is weakly powered when either there is a lit torch directly underneath it, or there is a powered wire whose shape is pointing into the cube. (Slabs cannot be weakly powered, which effectively means that a torch mounted on a slab can never be turned off.)</p></li></ul><h2 id="scroll--advanced">Advanced Tips & Techniques</h2><ul><li><p>If redstone dust is configured in a plus shape, you can press <span class="keybind">X</span> and it will change to a dot. The difference is that while plus-shaped dust provides power to all adjacent blocks (except above), dot-shaped dust will only provide weak power to the block below it.</p></li><li><p>You can also rotate the camera using <span class="keybind">Shift</span> + <span class="keybind">A/D</span>.</p></li><li><p>Pressing <span class="keybind">Z</span> will toggle semi-transparent and opaque display. (If you can't tell what this is doing, try rotating the camera)</p></li></ul><hr/><p>Copyright (C) 2022 Max Battle</p></div></div></div></body></html>

@@ -33,7 +33,7 @@
   "scripts": {
     "dev": "webpack serve --port 1234 --liveReload",
     "builddev": "webpack build",
-    "build": "webpack build --mode=production",
+    "build": "rm -rf dist/; webpack build --mode=production",
     "test": "npm run build_tests && ava",
     "build_tests": "tsc -p test/tsconfig.test.json && echo mv dist_test/{src,test}/* dist_test/"
   }

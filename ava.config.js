@@ -1,6 +1,6 @@
 export default {
     files: [ 'test/*.ts' ],
-    extensions: [ 'js' ], // .ts added automatically (somehow)
+    extensions: [ 'js', '.ts' ],
     require: [
         'esm', // https://stackoverflow.com/a/55803624
         'source-map-support/register'
