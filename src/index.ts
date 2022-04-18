@@ -169,7 +169,7 @@ window.onload = () => {
         camYaw = 0;
         selectFaceMode = false;
     };
-    window['loadScenario']('default');
+    window['loadScenario']('memory-cell');
     
     // GRID RENDERER
 

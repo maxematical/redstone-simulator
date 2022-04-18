@@ -4,7 +4,7 @@ import { Simulator } from './simulator';
 
 const scenarios: {[key: string]: (grid: Grid, simulator: Simulator) => void} = {};
 
-scenarios['default'] = ((grid, simulator) => {
+scenarios['memory-cell'] = ((grid, simulator) => {
     Grid.resize(grid, [0, -1, 0], [3, 2, 0]);
     Grid.set(grid, [0, 0, 0], blocks.dust);
     Grid.set(grid, [1, 0, 0], blocks.stone);
