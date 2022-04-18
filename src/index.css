@@ -135,12 +135,17 @@ html, body {
     text-shadow: 0px 1px 3px #555;
     box-shadow: 0px 2px 2px #999;
     cursor: pointer;
+    position: relative;
 }
 
 #info-bar button:hover {
     background-color: #585866;
     border-color: #50505c;
     box-shadow: 0px 2px 3px #888, inset 0px 0px 12px #50505c;
+}
+
+#info-bar button:active {
+    bottom: -1px;
 }
 
 #javascript-warning {
